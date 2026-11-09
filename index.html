@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1F2A44">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="أدوات المخطط">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>أدوات المخطط</title>
+<style>
+:root{--bg:#EDEFEA;--card:#F8F9F6;--ink:#1B2233;--navy:#1F2A44;--blue:#2457A6;--green:#2F6B54;--red:#D32F2F;--line:#CBD0C8;--mut:#5C6577}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Tajawal,"Noto Sans Arabic","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.5;padding-bottom:70px}
+header{background:var(--navy);color:#fff;padding:8px 10px;display:flex;align-items:center;gap:8px}
+header h1{margin:0;font-size:17px;font-weight:700;flex:1}
+.hbtn{min-height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #ffffff55;background:#ffffff18;color:#fff;font:inherit;font-size:14px;display:flex;align-items:center;cursor:pointer}
+#fileBar{background:#fff;border-bottom:1px solid var(--line);padding:6px 10px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#fileBar .grow{flex:1;min-width:120px}
+.chip{border:1.5px solid var(--line);background:var(--card);border-radius:20px;padding:2px 10px;font:inherit;font-size:13px;color:var(--ink)}
+.chip.warn{border-color:#E0642A;color:#9A3412}
+.viewer{position:sticky;top:0;z-index:5;background:#fff;border-bottom:2px solid var(--navy)}
+#wrap{height:42vh;position:relative;overflow:hidden;touch-action:none}
+#cv{width:100%;height:100%;display:block;touch-action:none}
+#loupe{position:absolute;top:8px;right:8px;width:120px;height:120px;border-radius:50%;border:3px solid var(--navy);box-shadow:0 2px 12px #0007;background:#fff;display:none;pointer-events:none;z-index:6}
+#empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);text-align:center;padding:20px;pointer-events:none}
+.tools{display:flex;gap:6px;padding:6px;background:var(--card);overflow-x:auto}
+.tools button{flex:1 0 auto;min-height:42px;padding:0 12px;border:1.5px solid var(--line);background:#fff;border-radius:10px;font:inherit;font-size:14px;color:var(--ink)}
+.tools button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.tools.sub button{min-height:38px;font-size:13px}
+#hint{padding:5px 12px;font-size:13px;color:var(--mut);background:#fff;min-height:28px}
+main{padding:10px;display:grid;gap:10px;max-width:720px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+.card .big{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.kv{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-top:1px solid var(--line)}
+.kv b{font-variant-numeric:tabular-nums;text-align:left}
+.card table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:14px;margin-top:6px}
+.card th{font-size:12px;color:var(--mut);font-weight:600;text-align:right;padding:4px 2px}
+.card td{padding:5px 2px;border-top:1px solid var(--line);text-align:right}
+.sel{border-color:var(--navy);box-shadow:0 0 0 2px #1F2A4433}
+label{display:block;font-size:14px;margin:8px 0 2px;color:var(--mut)}
+input[type=number],input[type=text],select{width:100%;min-height:42px;border:1.5px solid var(--line);border-radius:10px;padding:0 10px;font:inherit;background:#fff;color:var(--ink)}
+.btn{min-height:42px;border:0;border-radius:10px;padding:0 14px;font:inherit;font-weight:700;background:var(--blue);color:#fff;width:100%;margin-top:8px}
+.btn.alt{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.g{background:var(--green)}
+.btn.sm{min-height:34px;width:auto;margin:0;padding:0 10px;font-size:13px}
+.row{display:flex;gap:8px;align-items:flex-end}.row>*{flex:1}
+.acts{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.mut{color:var(--mut);font-size:13px}
+.warn{color:#9A3412;font-size:13px}
+.cm{font-size:.78em;color:var(--mut);font-weight:400;white-space:nowrap;margin-inline-start:.35em}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;margin-left:6px;border:1px solid #0003;vertical-align:-1px}
+details{margin-top:8px}details summary{min-height:38px;display:flex;align-items:center;font-weight:700;cursor:pointer}
+.status{font-size:14px;padding:8px 10px;border-radius:8px;background:#fff;border:1px dashed var(--line)}
+.out div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--line)}
+.out div b{font-variant-numeric:tabular-nums}
+.seg{display:flex;gap:6px;margin-top:6px}
+.seg button{flex:1;min-height:40px;border:1.5px solid var(--line);background:#fff;border-radius:10px;font:inherit}
+.seg button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.row2{display:flex;gap:6px;align-items:center;margin-top:6px}.row2>select{flex:1.4}.row2>input{flex:1;min-width:0}
+nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;background:var(--navy);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
+nav#tabs button{flex:1;min-height:54px;border:0;background:transparent;color:#B8C0D4;font:inherit;font-size:13px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:10px}
+nav#tabs button .ic{font-size:20px;line-height:1}
+nav#tabs button.on{background:#ffffff22;color:#fff;font-weight:700}
+#drawer{position:fixed;inset:0;z-index:50;display:none;background:#0008}
+#drawer.open{display:block}
+#drawer .dr{position:absolute;top:0;bottom:0;right:0;width:min(360px,92vw);background:var(--bg);overflow:auto;padding:12px;box-shadow:-4px 0 16px #0006}
+#drawer h3{margin:14px 0 4px;font-size:15px}
+#drawer .dr-h{display:flex;align-items:center;justify-content:space-between}
+#drawer label.ck{display:flex;gap:8px;align-items:center;color:var(--ink);font-size:15px;margin:6px 0}
+#drawer pre{white-space:pre-wrap;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:8px;margin:0}
+.file-in{position:absolute;width:1px;height:1px;opacity:0}
+</style>
+</head>
+<body>
+<header>
+  <button class="hbtn" data-a="menu" aria-label="القائمة">⋯</button>
+  <h1>أدوات المخطط</h1>
+  <label class="hbtn" for="file">فتح ملف</label>
+  <input type="file" id="file" class="file-in" accept="application/pdf,.pdf,image/*">
+</header>
+<div id="fileBar"><span class="grow" id="fileName">ما في ملف. اضغط «فتح ملف» (PDF أو صورة).</span></div>
+
+<div class="viewer">
+  <div id="wrap">
+    <canvas id="cv"></canvas>
+    <div id="empty">اضغط «فتح ملف» فوق<br>واختار PDF أو صورة.</div>
+    <canvas id="loupe"></canvas>
+  </div>
+  <div class="tools" id="tb"></div>
+  <div class="tools sub" id="tb2" style="display:none"></div>
+  <div id="hint"></div>
+</div>
+
+<main id="panel"></main>
+
+<nav id="tabs">
+  <button data-a="tool" data-t="areas"><span class="ic">▦</span>مساحات</button>
+  <button data-a="tool" data-t="lines"><span class="ic">〰</span>خطوط</button>
+  <button data-a="tool" data-t="circles"><span class="ic">◎</span>دوائر</button>
+  <button data-a="tool" data-t="angles"><span class="ic">∠</span>زوايا</button>
+  <button data-a="tool" data-t="slope"><span class="ic">◢</span>ميلان</button>
+  <button data-a="tool" data-t="mats"><span class="ic">▤</span>مواد</button>
+</nav>
+
+<div id="drawer"><div class="dr">
+  <div class="dr-h"><b>الإعدادات</b><button class="hbtn" style="background:#fff;color:#1B2233;border-color:#CBD0C8" data-a="menu">إغلاق</button></div>
+
+  <h3>الملف</h3>
+  <label>رقم الصفحة (للـ PDF)</label>
+  <input type="number" id="pageIn" min="1" value="1" inputmode="numeric" data-c="page">
+  <p class="warn" id="fileMsg"></p>
+
+  <h3>المقياس</h3>
+  <div class="status" id="scaleBox">غير محدد.</div>
+  <button class="btn alt" data-a="calOn">معايرة يدوية من بُعد معروف</button>
+  <div id="calBox" style="display:none">
+    <p class="mut">اضغط على طرفي بُعد معروف بالرسم، وبعدين اكتب طوله.</p>
+    <div class="row"><div><label>الطول (ft)</label><input type="number" id="calLen" step="any" inputmode="decimal"></div><div><button class="btn" data-a="calApply">اعتمد</button></div></div>
+    <p class="mut" id="calInfo"></p>
+  </div>
+  <button class="btn alt" data-a="clrRefs">مسح المقاييس اليدوية</button>
+
+  <h3>العرض</h3>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="cm" checked> إظهار السنتيمتر (cm) بجانب القدم</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="showAnn" checked> قياسات الـ PDF كما هي بالملف</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="showOv"> رسم قياسات الـ PDF بواسطة البرنامج</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="showLbl" checked> أرقام المساحات على القطع</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="showOutl" checked> حدود قطع الـ PDF</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="snap"> التقاط نقاطي على رؤوس مضلعات الـ PDF</label>
+  <label>وحدة الطول</label>
+  <div class="seg" id="fmtSeg"><button data-a="fmt" data-f="dec" class="on">قدم عشري</button><button data-a="fmt" data-f="ftin">قدم-إنش</button></div>
+
+  <h3>تشخيص الملف</h3>
+  <pre id="diag">—</pre>
+  <p class="mut">نسخة موحّدة: مساحات، خطوط، دوائر، زوايا، ميلان، مواد.</p>
+</div></div>
+
+<script>
+'use strict';
+const $=s=>document.querySelector(s);
+const cv=$('#cv'),ctx=cv.getContext('2d'),wrap=$('#wrap');
+const R=Math.PI/180,D=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+const iso=t=>'\u2066'+t+'\u2069';
+const med=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length;return n?(n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2):null};
+const nameFor=k=>{const L=String.fromCharCode(65+k%26);return k<26?L:L+Math.floor(k/26)};
+const norm=a=>((a%360)+360)%360;
+
+// ================= state =================
+const S={base:null,baseAnn:null,px:null,W:0,H:0,view:{s:1,x:0,y:0},dpr:window.devicePixelRatio||1,
+  pxFt:null,refs:[],dims:[],polys:[],ann:[],pieces:[],spread:null,err:null,diag:'',plabels:[],kappa:1,usePrinted:false,pxPerPt:1,autoPage:false,buf:null,pdfPage:null,origin:null,ang:0,hi:null,hiTimer:0,hiTok:0,hiTask:null,
+  file:null,name:'',page:1,pages:0,isPdf:false,
+  fmt:'dec',cm:true,showAnn:true,showOv:false,showLbl:true,showOutl:true,snap:false,log:[]};
+const CAL={on:false,pts:[]};
+let tool='areas',ptrs=new Map(),tapStart=null,pinch=null,dragH=null,raf=0;
+
+// ================= formatting =================
+function ftIn(ft){
+  let f=Math.floor(ft+1e-9),inch=Math.round((ft-f)*12*8)/8;if(inch>=12){f++;inch-=12}
+  const w=Math.floor(inch+1e-9);let n=Math.round((inch-w)*8),d=8;while(n&&n%2===0){n/=2;d/=2}
+  return f+"'-"+w+(n?' '+n+'/'+d:'')+'"';
+}
+const CMS='\u2061',CME='\u2062';                                  // invisible markers around the centimetre part
+const fFt=ft=>iso(S.fmt==='dec'?ft.toFixed(2)+' ft':ftIn(ft))+(S.cm?CMS+(ft*30.48).toFixed(1)+' cm'+CME:'');
+const cmHtml=h=>h.replace(/\u2061([^\u2062]*)\u2062/g,'<span class="cm">$1</span>');
+const cmText=t=>String(t).replace(/\u2061([^\u2062]*)\u2062/g,' · $1');
+const sf2=(v,d=2)=>iso(v.toFixed(d)+' sf');
+const fK=(px,k)=>k?fFt(px/k):iso(Math.round(px)+' px');
+const altFt=ft=>iso(S.fmt==='dec'?ftIn(ft):ft.toFixed(2)+' ft');           // the same length written the other way (decimal feet <-> feet-inches)
+const altK=(px,k)=>k?'= '+altFt(px/k):'';
+const cen=pts=>{const n=pts.length||1;let x=0,y=0;pts.forEach(p=>{x+=p.x!==undefined?p.x:p[0];y+=p.y!==undefined?p.y:p[1]});return[x/n,y/n]};
+
+// ================= printed scale labels ("Scale: 1:200") =================
+function findScaleLabels(items,toPx){
+  const its=items.filter(i=>i.str&&i.str.trim()).map(i=>({s:i.str,x:i.transform[4],y:i.transform[5],w:i.width||0})),out=[];
+  its.forEach(it=>{
+    if(!/scale/i.test(it.s))return;
+    let txt=it.s,cur=it;
+    const near=its.filter(o=>o!==it&&Math.abs(o.y-it.y)<3&&o.x>it.x).sort((a,b)=>a.x-b.x);
+    for(const o of near){if(o.x-(cur.x+cur.w)<40){txt+=' '+o.s;cur=o}}
+    const m=txt.match(/scale\s*:?\s*1\s*:\s*(\d+(?:\.\d+)?)/i);
+    if(m){const p=toPx(cur.x+cur.w,cur.y);out.push({N:parseFloat(m[1]),x:p[0],y:p[1]})}
+  });
+  return out}
+// the label of the drawing a point belongs to: labels sit at the bottom-right corner of their drawing
+function printedAt(x,y){
+  if(!S.plabels.length)return null;const pad=0.02*S.W;
+  let c=S.plabels.filter(l=>x<=l.x+pad&&y<=l.y+pad);if(!c.length)c=S.plabels;
+  let best=null,bd=Infinity;c.forEach(l=>{const d=Math.hypot(l.x-x,l.y-y);if(d<bd){bd=d;best=l}});
+  return best?{N:best.N,k0:S.pxPerPt*864/best.N}:null}   // 864 pt = 1 ft at 1:1
+function calibratePrinted(){ // do the printed scales agree with the measured dimensions?
+  S.kappa=1;S.usePrinted=false;if(!S.plabels.length)return;
+  const r=[];S.dims.forEach(d=>{const p=printedAt(d.mid[0],d.mid[1]);if(p)r.push((d.len/d.ft)/p.k0)});
+  if(r.length>=3){S.kappa=med(r);S.usePrinted=Math.abs(S.kappa-1)<0.05}else S.usePrinted=true}
+function scaleNoteAt(x,y){
+  let best=null,bd=Infinity;S.refs.forEach(r=>{const d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=r}});
+  if(best&&bd<0.4*Math.max(S.W,S.H))return 'يدوي';
+  if(S.usePrinted){const p=printedAt(x,y);if(p)return '1:'+p.N+' (مطبوع بالرسمة)'}
+  if(S.dims.length>=3)return 'من أبعاد الملف';return S.pxFt?'عام':'غير محدد'}
+const scaleNote=pts=>{const c=cen(pts);return scaleNoteAt(c[0],c[1])};
+// ================= coordinates: X to the right, Y up, in feet from an origin =================
+const originPt=()=>S.origin||{x:0,y:S.H,def:true};          // default origin = bottom-left corner of the page
+// the axes: X along angle S.ang (0 = page horizontal), Y perpendicular (counter-clockwise); canvas coords (y down)
+function frame(){const o=originPt(),a=(S.ang||0)*R;return{o,ux:[Math.cos(a),-Math.sin(a)],uy:[-Math.sin(a),-Math.cos(a)]}}
+function coordOf(x,y){const F=frame(),o=F.o,d=[x-o.x,y-o.y],px=d[0]*F.ux[0]+d[1]*F.ux[1],py=d[0]*F.uy[0]+d[1]*F.uy[1],
+    k=scaleAt((o.x+x)/2,(o.y+y)/2),n1=scaleNoteAt(o.x,o.y),n2=scaleNoteAt(x,y);
+  return{k,dx:px,dy:py,X:k?px/k:null,Y:k?py/k:null,dist:Math.hypot(d[0],d[1]),warn:n1!==n2&&(/1:/.test(n1)||/1:/.test(n2))}}
+function centerOrigin(){const r=wrap.getBoundingClientRect(),v=S.view;S.origin={x:Math.min(S.W,Math.max(0,(r.width/2-v.x)/v.s)),y:Math.min(S.H,Math.max(0,(r.height/2-v.y)/v.s))};S.ang=0}
+const fSgn=v=>v===null?'—':((v<-1e-9?'−':'')+fFt(Math.abs(v)));
+const coordShort=c=>c.k?(S.fmt==='dec'?c.X.toFixed(2)+', '+c.Y.toFixed(2)+' ft':(c.X<0?'−':'')+ftIn(Math.abs(c.X))+', '+(c.Y<0?'−':'')+ftIn(Math.abs(c.Y)))+(S.cm?' ('+(c.X*30.48).toFixed(1)+', '+(c.Y*30.48).toFixed(1)+' cm)':''):Math.round(c.dx)+', '+Math.round(c.dy)+' px';
+const cX=c=>c.k?fSgn(c.X):Math.round(c.dx)+' px',cY=c=>c.k?fSgn(c.Y):Math.round(c.dy)+' px';
+
+// ================= scale (PDF numbers, local per drawing) =================
+function scaleAt(x,y){
+  let best=null,bd=Infinity;S.refs.forEach(r=>{const d=Math.hypot(r.x-x,r.y-y);if(d<bd){bd=d;best=r}});
+  if(best&&bd<0.4*Math.max(S.W,S.H))return best.pxFt;
+  if(S.usePrinted){const p=printedAt(x,y);if(p)return p.k0*S.kappa}
+  const big=S.dims.filter(d=>d.ft>3),src=big.length>=3?big:S.dims;
+  if(src.length>=3){const near=src.map(d=>({r:d.len/d.ft,d:(d.mid[0]-x)**2+(d.mid[1]-y)**2})).sort((a,b)=>a.d-b.d).slice(0,6);const v=med(near.map(n=>n.r));if(v)return v}
+  return S.pxFt;
+}
+const scaleP=pts=>{const c=cen(pts);return scaleAt(c[0],c[1])};
+function setScaleManual(pxPerFt,x,y,tag){
+  if(S.dims.length>=3)S.refs=S.refs.filter(r=>r.tag!==tag).concat([{x,y,pxFt:pxPerFt,tag}]);
+  else{S.pxFt=pxPerFt;S.refs=[]}
+}
+
+// ================= PDF helpers =================
+function parseFtIn(t){const m=String(t||'').match(/^\s*(\d+)\s*'\s*-?\s*(?:(\d+)(?:\s+(\d+)\/(\d+))?|(\d+)\/(\d+))?\s*"?\s*$/);if(!m)return null;
+  let i=0;if(m[2])i+=+m[2];if(m[3])i+=m[3]/m[4];if(m[5])i+=m[5]/m[6];return(+m[1])+i/12}
+function parseLen(t){const f=parseFtIn(t);if(f!==null)return f;
+  const m=String(t||'').match(/^\s*([\d.]+)\s*(mm|cm|m)\s*$/i);if(!m)return null;const v=parseFloat(m[1]);if(!(v>0))return null;
+  return v*({mm:0.001,cm:0.01,m:1})[m[2].toLowerCase()]*3.28084}
+function parseArea(t){const m=String(t||'').match(/([\d.,]+)\s*(sf|sq\.?\s*ft|sq\.?\s*m|m²|sqm|م²)/i);if(!m)return null;const v=parseFloat(m[1].replace(/,/g,''));if(!(v>0))return null;return /m/i.test(m[2])&&!/ft/i.test(m[2])?v*10.7639:v}
+const toPairs=v=>typeof v[0]==='number'?v.reduce((r,x,i)=>(i%2?r[r.length-1].push(x):r.push([x]),r),[]):v.map(p=>Array.isArray(p)?p:[p.x,p.y]);
+function shoelace(p){let a=0;for(let i=0;i<p.length;i++){const q=p[(i+1)%p.length];a+=p[i][0]*q[1]-q[0]*p[i][1]}return Math.abs(a)/2}
+function inPoly(x,y,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if(((p[i][1]>y)!==(p[j][1]>y))&&(x<(p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0]))c=!c}return c}
+function readPdf(annots,toPx){
+  const dims=[],polys=[],ann=[],cnt={};
+  for(const a of annots){
+    cnt[a.subtype]=(cnt[a.subtype]||0)+1;
+    const txt=String((a.contentsObj&&a.contentsObj.str)||a.contents||'').trim();
+    if(a.subtype==='Line'&&a.lineCoordinates){const c=a.lineCoordinates,p0=toPx(c[0],c[1]),p1=toPx(c[2],c[3]),ft=parseLen(txt),mid=[(p0[0]+p1[0])/2,(p0[1]+p1[1])/2];
+      ann.push({k:'line',mid,txt});if(ft>0)dims.push({mid,ft,txt,len:D(p0,p1),p0,p1})}
+    else if((a.subtype==='Polygon'||a.subtype==='PolyLine')&&a.vertices){const pts=toPairs(a.vertices).map(p=>toPx(p[0],p[1])),sf=parseArea(txt);
+      ann.push({k:'poly',pts,txt,closed:a.subtype==='Polygon'});if(a.subtype==='Polygon'&&sf&&pts.length>=3)polys.push({txt,sf,pts,ap:shoelace(pts),sign:0,name:'',rgb:[128,128,128],lp:null})}
+    else if(a.rect&&(a.subtype==='Square'||a.subtype==='FreeText'||a.subtype==='Circle')){const p0=toPx(a.rect[0],a.rect[1]),p1=toPx(a.rect[2],a.rect[3]);ann.push({k:'rect',p0,p1,txt:a.subtype==='FreeText'?txt:''})}
+  }
+  const cl=med(dims.map(d=>d.len/d.ft)),ca=med(polys.map(p=>p.ap/p.sf)),px=cl||(ca?Math.sqrt(ca):null);
+  let err=null,spread=null;const big=dims.filter(d=>d.ft>3);
+  if(px&&big.length){const e=big.map(d=>Math.abs(d.len/px-d.ft)/d.ft);err={avg:e.reduce((a,b)=>a+b,0)/e.length,max:Math.max(...e)}}
+  if(big.length>=4){const r=big.map(d=>d.len/d.ft).sort((x,y)=>x-y),q=p=>r[Math.min(r.length-1,Math.floor(p*(r.length-1)))];spread=(q(0.9)-q(0.1))/med(r)}
+  return{dims,polys,ann,pxFt:px,err,spread,cnt,check:(cl&&ca)?(cl*cl)/ca:null};
+}
+const PDF_COL={'Berlin Blue (كحلي)':[36,36,60],'Rainbow Blue (أزرق)':[36,84,132],'Teal (تركوازي)':[84,156,156],'Reseda (زيتوني)':[108,132,84],'Signal Green (أخضر غامق)':[36,60,60],'Orange (برتقالي)':[228,60,36],'Rose (وردي)':[204,36,36]};
+function pieceInfo(p){ // colour name + a label point well inside the piece
+  let x0=1e9,y0=1e9,x1=-1,y1=-1;for(const q of p.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
+  const Rr=[],G=[],B=[];let tries=0,best=null,bd=-1;const step=Math.max(1,Math.floor(p.pts.length/60));
+  while(Rr.length<150&&tries<4000){tries++;const x=x0+Math.random()*(x1-x0),y=y0+Math.random()*(y1-y0);if(!inPoly(x,y,p.pts))continue;
+    let md=1e18;for(let i=0;i<p.pts.length;i+=step){const d=(p.pts[i][0]-x)**2+(p.pts[i][1]-y)**2;if(d<md)md=d}if(md>bd){bd=md;best=[x,y]}
+    if(S.px&&x>=0&&y>=0&&x<S.W&&y<S.H){const i=(Math.floor(y)*S.W+Math.floor(x))*4;Rr.push(S.px[i]);G.push(S.px[i+1]);B.push(S.px[i+2])}else Rr.push(0)}
+  p.lp=best||[(x0+x1)/2,(y0+y1)/2];
+  if(S.px&&G.length){const m=[med(Rr),med(G),med(B)];let bn=null,bdd=1e9;for(const k in PDF_COL){const c=PDF_COL[k],d=(c[0]-m[0])**2+(c[1]-m[1])**2+(c[2]-m[2])**2;if(d<bdd){bdd=d;bn=k}}p.name=bn;p.rgb=m.map(Math.round)}
+}
+
+// ================= spline (curve through points) =================
+function circTan(a,b,c,at){
+  const d=2*(a[0]*(b[1]-c[1])+b[0]*(c[1]-a[1])+c[0]*(a[1]-b[1])),ch=[c[0]-a[0],c[1]-a[1]],cl=Math.hypot(ch[0],ch[1]);
+  if(!cl)return[0,0];
+  if(Math.abs(d)<1e-9)return[ch[0]/cl,ch[1]/cl];
+  const A=a[0]*a[0]+a[1]*a[1],B=b[0]*b[0]+b[1]*b[1],C=c[0]*c[0]+c[1]*c[1];
+  const ux=(A*(b[1]-c[1])+B*(c[1]-a[1])+C*(a[1]-b[1]))/d,uy=(A*(c[0]-b[0])+B*(a[0]-c[0])+C*(b[0]-a[0]))/d;
+  let t=[-(at[1]-uy),at[0]-ux];const L=Math.hypot(t[0],t[1])||1;t=[t[0]/L,t[1]/L];
+  return(t[0]*ch[0]+t[1]*ch[1]<0)?[-t[0],-t[1]]:t}
+function tdirAt(P,i,closed){const n=P.length;
+  if(closed)return circTan(P[(i-1+n)%n],P[i],P[(i+1)%n],P[i]);
+  if(i===0)return circTan(P[0],P[1],P[2],P[0]);
+  if(i===n-1)return circTan(P[n-3],P[n-2],P[n-1],P[n-1]);
+  return circTan(P[i-1],P[i],P[i+1],P[i])}
+function bez(P,i,closed){const n=P.length,j=(i+1)%n,p1=P[i],p2=P[j],h=D(p1,p2)/3,t1=tdirAt(P,i,closed),t2=tdirAt(P,j,closed);
+  return[p1,[p1[0]+t1[0]*h,p1[1]+t1[1]*h],[p2[0]-t2[0]*h,p2[1]-t2[1]*h],p2]}
+function pathOn(c,P,curved,closed){
+  const n=P.length;if(!n)return;c.moveTo(P[0][0],P[0][1]);
+  if(curved&&n>=3){const cnt=closed?n:n-1;for(let i=0;i<cnt;i++){const[,c1,c2,p2]=bez(P,i,closed);c.bezierCurveTo(c1[0],c1[1],c2[0],c2[1],p2[0],p2[1])}}
+  else for(let i=1;i<n;i++)c.lineTo(P[i][0],P[i][1]);
+  if(closed&&n>=3)c.closePath();
+}
+function sampleSeg(P,i,curved,closed,n){
+  const m=P.length;if(!(curved&&m>=3))return[P[i],P[(i+1)%m]];
+  const[p1,c1,c2,p2]=bez(P,i,closed),out=[p1];
+  for(let k=1;k<=n;k++){const t=k/n,u=1-t;out.push([u*u*u*p1[0]+3*u*u*t*c1[0]+3*u*t*t*c2[0]+t*t*t*p2[0],u*u*u*p1[1]+3*u*u*t*c1[1]+3*u*t*t*c2[1]+t*t*t*p2[1]])}
+  return out}
+const polyLen=S_=>{let L=0;for(let i=0;i<S_.length-1;i++)L+=D(S_[i],S_[i+1]);return L};
+function pathLen(P,curved,closed){const n=P.length;if(n<2)return 0;let L=0;const cnt=closed?n:n-1;for(let i=0;i<cnt;i++)L+=polyLen(sampleSeg(P,i,curved,closed,40));return L}
+function offsetOf(a,b,q){const dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy);if(!L)return D(a,q);return(dx*(q[1]-a[1])-dy*(q[0]-a[0]))/L} // >0 = right of a->b (screen coords)
+function turnAngle(d1,d2){return Math.atan2(d1[0]*d2[1]-d1[1]*d2[0],d1[0]*d2[0]+d1[1]*d2[1])/R}
+const sideW=v=>Math.abs(v)<1e-9?'':(v>0?'يمين':'يسار');
+
+// ================= canvas / view =================
+function resize(){sizeLoupe();const r=wrap.getBoundingClientRect();cv.width=Math.round(r.width*S.dpr);cv.height=Math.round(r.height*S.dpr);viewChanged()}
+window.addEventListener('resize',resize);
+function fit(){if(!S.W)return;const r=wrap.getBoundingClientRect();const s=Math.min(r.width/S.W,r.height/S.H);S.view={s,x:(r.width-S.W*s)/2,y:(r.height-S.H*s)/2};viewChanged()}
+const toImg=(cx,cy)=>{const r=cv.getBoundingClientRect();return[(cx-r.left-S.view.x)/S.view.s,(cy-r.top-S.view.y)/S.view.s]};
+const toScr=(cx,cy)=>{const r=cv.getBoundingClientRect();return[r.left+S.view.x+cx*S.view.s,r.top+S.view.y+cy*S.view.s]};
+function snapPt(x,y){
+  if(!S.snap||(!S.polys.length&&!S.dims.length))return[x,y];
+  const rad=14/S.view.s,near=8/S.view.s;let V=null,dv=rad,E=null,de=rad;
+  const tryV=q=>{const d=Math.hypot(q[0]-x,q[1]-y);if(d<dv){dv=d;V=[q[0],q[1]]}};
+  S.dims.forEach(d=>{if(d.p0&&(Math.abs(d.p0[0]-d.p1[0])<1.5||Math.abs(d.p0[1]-d.p1[1])<1.5)){tryV(d.p0);tryV(d.p1)}});   // ends of horizontal/vertical dimensions are exact
+  S.polys.forEach(p=>{const n=p.pts.length;
+    for(let i=0;i<n;i++){const a=p.pts[i],b=p.pts[(i+1)%n];tryV(a);
+      const vx=b[0]-a[0],vy=b[1]-a[1],L=vx*vx+vy*vy;if(!L)continue;let t=((x-a[0])*vx+(y-a[1])*vy)/L;t=Math.max(0,Math.min(1,t));
+      const qx=a[0]+t*vx,qy=a[1]+t*vy,d=Math.hypot(qx-x,qy-y);if(d<de){de=d;E=[qx,qy]}}});
+  if(V&&dv<=near)return V;           // a corner / dimension end very close wins
+  if(E)return E;                     // otherwise the nearest point on an outline
+  return V||[x,y]}
+function wantSnap(){
+  if(!S.snap)return false;if(CAL.on)return true;const m=T[tool].mode;
+  if(tool==='lines')return m==='draw'||m==='coord';if(tool==='slope')return m==='draw';if(tool==='angles')return m==='a3'||m==='a4';
+  if(tool==='areas')return m==='poly';if(tool==='circles')return m==='center'||m==='lm';return false}
+function draw(){
+  const v=S.view;
+  ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,cv.width,cv.height);
+  if(!S.base)return;ctx.direction='ltr';
+  ctx.setTransform(S.dpr*v.s,0,0,S.dpr*v.s,S.dpr*v.x,S.dpr*v.y);
+  ctx.imageSmoothingEnabled=true;ctx.drawImage((S.showAnn&&S.baseAnn)?S.baseAnn:S.base,0,0);
+  if(S.hi)ctx.drawImage(S.hi.cv,S.hi.x,S.hi.y,S.hi.w,S.hi.h);   // crisp re-render of the visible region
+  const L=[];
+  if(S.showOv&&S.ann.length){ // measurements drawn by this program
+    ctx.lineWidth=1.2/v.s;
+    S.ann.forEach(an=>{
+      if(an.k==='poly'){ctx.strokeStyle='#E0642A';ctx.beginPath();an.pts.forEach((q,i)=>i?ctx.lineTo(q[0],q[1]):ctx.moveTo(q[0],q[1]));if(an.closed)ctx.closePath();ctx.stroke();if(an.txt&&an.txt.length<40)L.push([an.pts[Math.floor(an.pts.length/2)][0],an.pts[Math.floor(an.pts.length/2)][1],an.txt,'#E0642A',0])}
+      else if(an.k==='line'){ctx.beginPath();ctx.arc(an.mid[0],an.mid[1],4/v.s,0,7);ctx.fillStyle='#D32F2F';ctx.fill();if(an.txt&&an.txt.length<40)L.push([an.mid[0],an.mid[1],an.txt,'#D32F2F',-12])}
+      else if(an.k==='rect'){ctx.strokeStyle='#8888';ctx.strokeRect(Math.min(an.p0[0],an.p1[0]),Math.min(an.p0[1],an.p1[1]),Math.abs(an.p1[0]-an.p0[0]),Math.abs(an.p1[1]-an.p0[1]));if(an.txt&&an.txt.length<40)L.push([(an.p0[0]+an.p1[0])/2,(an.p0[1]+an.p1[1])/2,an.txt,'#555555',0])}
+    });
+  }
+  const T_=T[tool];if(T_&&T_.draw)T_.draw(ctx,L);
+  if(CAL.on){CAL.pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],6/v.s,0,7);ctx.fillStyle='#14B860';ctx.fill()});
+    if(CAL.pts.length===2){ctx.lineWidth=2/v.s;ctx.strokeStyle='#14B860';ctx.beginPath();ctx.moveTo(...CAL.pts[0]);ctx.lineTo(...CAL.pts[1]);ctx.stroke()}}
+  ctx.setTransform(S.dpr,0,0,S.dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 12px sans-serif';
+  L.forEach(([x,y,t0,c,oy])=>{const t=cmText(t0),sx=v.x+x*v.s,sy=v.y+y*v.s;
+    if(c){const w=ctx.measureText(t).width+10,yy=sy+(oy||0);ctx.fillStyle=c+'EE';ctx.fillRect(sx-w/2,yy-10,w,20);ctx.fillStyle='#fff';ctx.fillText(t,sx,yy+1)}
+    else{ctx.fillStyle='#1B2233E6';ctx.fillRect(sx+7,sy-24,18,18);ctx.fillStyle='#fff';ctx.fillText(t,sx+16,sy-14)}});
+}
+function hitPts(arr,cx,cy,rad=26){let best=null,bd=rad;arr.forEach(p=>{const[sx,sy]=toScr(p.x,p.y);const d=Math.hypot(sx-cx,sy-cy);if(d<bd){bd=d;best=p}});return best}
+function later(){if(raf)return;raf=1;(window.requestAnimationFrame||setTimeout)(()=>{raf=0;renderPanel();draw()})}
+
+// ================= crisp PDF: re-render the visible part at screen resolution =================
+function viewChanged(){draw();scheduleHi()}
+function scheduleHi(){if(!S.pdfPage)return;clearTimeout(S.hiTimer);S.hiTimer=setTimeout(hiRender,220)}
+async function hiRender(){
+  const pg=S.pdfPage;if(!pg||!S.base)return;
+  const v=S.view,dp=S.dpr,r=wrap.getBoundingClientRect();
+  if(v.s*dp<=1.05){if(S.hi){S.hi=null;draw()}return}               // zoomed out: the base render is already sharp
+  const x0=Math.max(0,-v.x/v.s),y0=Math.max(0,-v.y/v.s),x1=Math.min(S.W,(r.width-v.x)/v.s),y1=Math.min(S.H,(r.height-v.y)/v.s);
+  if(x1-x0<2||y1-y0<2)return;
+  const k=S.pxPerPt,sHi=v.s*dp*k,cw=Math.max(1,Math.round((x1-x0)*v.s*dp)),ch=Math.max(1,Math.round((y1-y0)*v.s*dp)),tok=++S.hiTok;
+  if(S.hiTask){try{S.hiTask.cancel()}catch(e){}}
+  const c=document.createElement('canvas');c.width=cw;c.height=ch;const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,cw,ch);
+  const vp=pg.getViewport({scale:sHi,offsetX:-(x0/k)*sHi,offsetY:-(y0/k)*sHi});
+  try{const task=pg.render({canvasContext:g,viewport:vp,annotationMode:S.showAnn?1:0});S.hiTask=task;await task.promise;
+    if(tok!==S.hiTok)return;S.hi={cv:c,x:x0,y:y0,w:x1-x0,h:y1-y0};draw()}
+  catch(e){/* cancelled or failed: the base render stays */}
+}
+
+// ================= magnifier loupe (shows what is under the finger while placing / dragging a point) =================
+const loupe=$('#loupe'),lg=loupe.getContext('2d'),LSZ=120,LM=3;
+let placing=null,loupeT=0;
+function sizeLoupe(){loupe.width=loupe.height=Math.round(LSZ*S.dpr)}
+// world point a handle is really sitting at (the finger can be offset from it)
+function handleWorld(h,M){
+  if(h.kind){
+    if(h.kind==='o'&&S.origin)return[S.origin.x,S.origin.y];
+    if(h.p&&(h.kind==='mx'||h.kind==='my'||h.kind==='p'))return[h.p.x,h.p.y];
+    if((h.kind==='ax'||h.kind==='ay')&&S.origin){const F=frame(),o=F.o,u=h.kind==='ax'?F.ux:F.uy,t=(M[0]-o.x)*u[0]+(M[1]-o.y)*u[1];return[o.x+u[0]*t,o.y+u[1]*t]}
+    return null}
+  if(h.p)return[h.p.x,h.p.y];
+  if(h.x!==undefined)return[h.x,h.y];
+  return null}
+// loupe: a clean magnified view (drawing + geometry, NO labels) centred on the world point (wx,wy)
+function showLoupe(fx,fy,wx,wy){
+  const r=wrap.getBoundingClientRect(),lx=fx-r.left,dp=S.dpr,N=loupe.width,right=lx>r.width/2;
+  if(wx===undefined){const m=toImg(fx,fy);wx=m[0];wy=m[1]}
+  S.loupeAt=[wx,wy];
+  loupe.style.display='block';loupe.style.left=right?'8px':'auto';loupe.style.right=right?'auto':'8px';   // always on the side away from the finger
+  lg.setTransform(1,0,0,1,0,0);lg.fillStyle='#fff';lg.fillRect(0,0,N,N);
+  const sc=S.view.s*LM;lg.setTransform(dp*sc,0,0,dp*sc,dp*(LSZ/2-sc*wx),dp*(LSZ/2-sc*wy));
+  lg.imageSmoothingEnabled=true;lg.drawImage((S.showAnn&&S.baseAnn)?S.baseAnn:S.base,0,0);if(S.hi)lg.drawImage(S.hi.cv,S.hi.x,S.hi.y,S.hi.w,S.hi.h);
+  const keep=S.view;S.view={s:sc,x:0,y:0};
+  try{if(T[tool].draw)T[tool].draw(lg,[])}catch(e){}finally{S.view=keep}                              // geometry only: the label list is thrown away
+  lg.setTransform(1,0,0,1,0,0);lg.setLineDash([]);
+  const m=N/2,g=8*dp;lg.lineWidth=2*dp;lg.strokeStyle='#E5253B';lg.beginPath();
+  lg.moveTo(m-4*g,m);lg.lineTo(m-g,m);lg.moveTo(m+g,m);lg.lineTo(m+4*g,m);lg.moveTo(m,m-4*g);lg.lineTo(m,m-g);lg.moveTo(m,m+g);lg.lineTo(m,m+4*g);lg.stroke();
+  lg.beginPath();lg.arc(m,m,2.5*dp,0,7);lg.fillStyle='#E5253B';lg.fill();
+}
+function showLoupeFinger(fx,fy){const m=toImg(fx,fy),q=wantSnap()?snapPt(m[0],m[1]):m;showLoupe(fx,fy,q[0],q[1])}   // the red cursor sits where the point will really go (snapped if snapping is on)
+function hideLoupe(){clearTimeout(loupeT);loupe.style.display='none'}
+const isPlacing=()=>CAL.on||!!(T[tool].mode&&T[tool].mode!=='pan');
+
+// ================= pointer input =================
+cv.addEventListener('pointerdown',e=>{
+  if(!S.base)return;cv.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){dragH=null;placing=null;hideLoupe();const[a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),v:{...S.view},cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};tapStart=null;return}
+  tapStart={x:e.clientX,y:e.clientY,moved:false};
+  dragH=(!CAL.on&&T[tool].hit)?T[tool].hit(e.clientX,e.clientY):null;
+  if(dragH){const M=toImg(e.clientX,e.clientY),hw=handleWorld(dragH,M);if(hw)showLoupe(e.clientX,e.clientY,hw[0],hw[1]);else showLoupe(e.clientX,e.clientY)}
+  else if(isPlacing()){placing={x:e.clientX,y:e.clientY,t:Date.now(),precision:false};clearTimeout(loupeT);loupeT=setTimeout(()=>{if(placing)showLoupeFinger(placing.x,placing.y)},90)}
+});
+cv.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId))return;const p=ptrs.get(e.pointerId);const dx=e.clientX-p.x,dy=e.clientY-p.y;p.x=e.clientX;p.y=e.clientY;
+  if(ptrs.size===2&&pinch){const[a,b]=[...ptrs.values()];const d=Math.hypot(a.x-b.x,a.y-b.y);const s=Math.min(40,Math.max(.05,pinch.v.s*d/pinch.d));
+    const r=cv.getBoundingClientRect();const ix=(pinch.cx-r.left-pinch.v.x)/pinch.v.s,iy=(pinch.cy-r.top-pinch.v.y)/pinch.v.s;
+    const ncx=(a.x+b.x)/2,ncy=(a.y+b.y)/2;S.view={s,x:ncx-r.left-ix*s,y:ncy-r.top-iy*s};viewChanged();return}
+  if(!tapStart)return;
+  const mv=Math.hypot(e.clientX-tapStart.x,e.clientY-tapStart.y);
+  if(placing&&!placing.precision&&mv>8){if(Date.now()-placing.t<220){placing=null;hideLoupe()}else placing.precision=true}   // quick swipe = pan, slow/held = precise placement
+  if(placing){placing.x=e.clientX;placing.y=e.clientY;if(placing.precision||loupe.style.display==='block')showLoupeFinger(e.clientX,e.clientY);if(placing.precision){tapStart.moved=true;return}}
+  if(mv>8)tapStart.moved=true;
+  if(dragH){const[ix,iy]=toImg(e.clientX,e.clientY);T[tool].drag(dragH,ix,iy);const hw=handleWorld(dragH,[ix,iy]);if(hw)showLoupe(e.clientX,e.clientY,hw[0],hw[1]);else showLoupe(e.clientX,e.clientY);later()}
+  else if(tapStart.moved){S.view.x+=dx;S.view.y+=dy;viewChanged()}
+});
+function up(e){
+  const had=ptrs.delete(e.pointerId);if(!had)return;
+  if(e.type==='pointercancel'){placing=null;dragH=null;tapStart=null;hideLoupe();return}
+  if(ptrs.size<2)pinch=null;
+  if(dragH){dragH=null;tapStart=null;hideLoupe();if(T[tool].dragEnd)T[tool].dragEnd();renderPanel();draw();return}
+  if(placing){const pl=placing;placing=null;hideLoupe();
+    if(ptrs.size===0&&(pl.precision||(tapStart&&!tapStart.moved))){let m=toImg(pl.x,pl.y);if(wantSnap())m=snapPt(m[0],m[1]);onTap(m[0],m[1],pl.x,pl.y)}
+    tapStart=null;return}
+  hideLoupe();
+  if(tapStart&&!tapStart.moved&&ptrs.size===0){const[ix,iy]=toImg(e.clientX,e.clientY);onTap(ix,iy,e.clientX,e.clientY)}
+  tapStart=null;
+}
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+cv.addEventListener('wheel',e=>{e.preventDefault();const r=cv.getBoundingClientRect();const ix=(e.clientX-r.left-S.view.x)/S.view.s,iy=(e.clientY-r.top-S.view.y)/S.view.s;
+  const s=Math.min(40,Math.max(.05,S.view.s*(e.deltaY<0?1.15:1/1.15)));S.view={s,x:e.clientX-r.left-ix*s,y:e.clientY-r.top-iy*s};viewChanged()},{passive:false});
+
+function onTap(ix,iy,cx,cy){
+  if(CAL.on){if(CAL.pts.length>=2)CAL.pts=[];CAL.pts.push([ix,iy]);
+    if(CAL.pts.length===2)$('#calInfo').textContent='المسافة بالصورة: '+D(CAL.pts[0],CAL.pts[1]).toFixed(1)+' بكسل. اكتب طولها الحقيقي واضغط اعتمد.';draw();return}
+  if(T[tool].tap)T[tool].tap(ix,iy,cx,cy);
+}
+
+// ================= tool registry =================
+const T={};
+function renderToolbar(){
+  const t=T[tool],tb=$('#tb'),tb2=$('#tb2');
+  const modes=t.modes?t.modes():[],ex=t.extras?t.extras():[];
+  tb.innerHTML=modes.map(m=>'<button data-a="mode" data-m="'+m[0]+'" class="'+(t.mode===m[0]?'on':'')+'">'+m[1]+'</button>').join('')+'<button data-a="fit">ملء الشاشة</button>';
+  tb.style.display=modes.length?'flex':'none';
+  tb2.innerHTML=ex.map(m=>'<button data-a="tbx" data-k="'+m[0]+'" class="'+(m[2]?'on':'')+'">'+m[1]+'</button>').join('');
+  tb2.style.display=ex.length?'flex':'none';
+  $('#hint').textContent=(CAL.on?'معايرة: اضغط على طرفي بُعد معروف.':(t.hint?t.hint():''))+(isPlacing()?' · اضغط مطوّلاً لتظهر العدسة وتظبط النقطة، ولتحريك الصورة اسحب بسرعة أو بإصبعين.':'');
+}
+function renderPanel(){$('#panel').innerHTML=cmHtml(T[tool].panel())}
+function renderAll(){
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tool));
+  renderToolbar();renderPanel();renderFileBar();renderScaleBox();draw();
+}
+function setTool(t){tool=t;renderAll();window.scrollTo&&window.scrollTo(0,0)}
+
+// ================= file bar / scale box =================
+function renderFileBar(){
+  const fb=$('#fileBar');
+  if(!S.base){fb.innerHTML='<span class="grow">ما في ملف. اضغط «فتح ملف» (PDF أو صورة).</span>';return}
+  let h='<span class="grow">'+S.name+'</span>';
+  if(S.isPdf&&S.pages>1)h+='<button class="chip" data-a="page" data-d="1">◀</button><span>'+S.page+' / '+S.pages+'</span><button class="chip" data-a="page" data-d="-1">▶</button>';
+  h+='<button class="chip" data-a="fmtToggle">'+(S.fmt==='dec'?'الوحدة: ft':'الوحدة: ft-in')+'</button>';
+  if(S.polys.length||S.dims.length)h+='<button class="chip" data-a="snap">'+(S.snap?'التقاط ✓':'التقاط ✗')+'</button>';
+  const k=S.pxFt;h+='<button class="chip'+(k?'':' warn')+'" data-a="menu">'+(k?'المقياس ✓':'حدد المقياس')+(S.spread&&S.spread>0.05?' ⚠ مقاييس متعددة':'')+'</button>';
+  fb.innerHTML=h;
+}
+function renderScaleBox(){
+  const el=$('#scaleBox');if(!el)return;
+  if(!S.pxFt&&!S.refs.length&&!S.plabels.length){el.textContent='غير محدد. إذا الملف PDF فيه قياسات بيتحدد لحاله، وإلا استخدم المعايرة اليدوية تحت.';return}
+  let h='المقياس: <b>'+iso((S.pxFt||0).toFixed(2)+' px/ft')+'</b>';
+  if(S.dims.length)h+=' · من '+S.dims.length+' بُعد و'+S.polys.length+' مساحة مكتوبة بالملف.';
+  if(S.err)h+='<br>الفرق بين أرقام الملف والمقياس (للأبعاد فوق 3 ft): معدل '+iso((S.err.avg*100).toFixed(2)+'%')+'، أقصى '+iso((S.err.max*100).toFixed(2)+'%')+'.';
+  if(S.spread&&S.spread>0.05)h+='<br><b>تنبيه:</b> الصفحة فيها رسومات بمقاييس مختلفة (فرق '+iso((S.spread*100).toFixed(0)+'%')+'). كل شي بيحسب بمقياس أقرب أبعاد للملف.';
+  if(S.plabels.length)h+='<br>مقاييس مطبوعة بالرسمات: '+[...new Set(S.plabels.map(l=>'1:'+l.N))].join('، ')+(S.usePrinted?' (مستخدمة)':' (غير مستخدمة)');
+  if(S.refs.length)h+='<br>مقاييس يدوية: '+S.refs.length;
+  el.innerHTML=h;
+}
+
+// ================= file loading =================
+function useBase(cn,cn2){
+  S.W=cn.width;S.H=cn.height;S.base=cn;S.baseAnn=cn2||null;
+  S.px=cn.getContext('2d',{willReadFrequently:true}).getImageData(0,0,S.W,S.H).data;
+  S.pxFt=null;S.refs=[];S.dims=[];S.polys=[];S.ann=[];S.pieces=[];S.spread=null;S.err=null;S.showOv=false;S.plabels=[];S.kappa=1;S.usePrinted=false;S.hi=null;S.pdfPage=null;S.origin=null;S.ang=0;clearTimeout(S.hiTimer);S.hiTok++;
+  Object.keys(T).forEach(k=>T[k].reset&&T[k].reset());
+  $('#empty').style.display='none';
+}
+function setStatus(t,err){const fb=$('#fileBar');if(fb)fb.innerHTML='<span class="grow" style="'+(err?'color:#9A3412;font-weight:700':'')+'">'+t+'</span>'}
+$('#file').onchange=async e=>{
+  const f=e.target.files[0];if(!f)return;$('#fileMsg').textContent='';
+  if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
+    try{setStatus('عم أقرا الملف '+f.name+'...');S.buf=await f.arrayBuffer()}
+    catch(err){setStatus('ما قدرت أقرا الملف: '+(err&&err.message?err.message:err),true);e.target.value='';return}
+    e.target.value='';S.name=f.name;S.isPdf=true;S.page=1;S.autoPage=true;loadPdf();
+  }else{
+    S.name=f.name;S.buf=null;S.isPdf=false;S.pages=0;const img=new Image();
+    img.onload=()=>{const k=Math.min(1,3000/Math.max(img.width,img.height));const cn=document.createElement('canvas');cn.width=Math.round(img.width*k);cn.height=Math.round(img.height*k);
+      cn.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,cn.width,cn.height);useBase(cn,null);S.diag='صورة بدون قياسات. حدد المقياس يدوياً من الإعدادات (⋯).';
+      $('#diag').textContent=S.diag;setTool('areas');resize();fit()};
+    img.onerror=()=>{setStatus('ما قدرت أفتح الصورة. جرّب JPG أو PNG.',true)};
+    img.src=URL.createObjectURL(f);e.target.value='';
+  }
+};
+const CDNS=['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/','https://unpkg.com/pdfjs-dist@3.11.174/build/'];
+function loadScript(src,ms){return new Promise((res,rej)=>{const sc=document.createElement('script'),t=setTimeout(()=>rej(new Error('timeout')),ms);sc.crossOrigin='anonymous';sc.onload=()=>{clearTimeout(t);res()};sc.onerror=()=>{clearTimeout(t);rej(new Error('load'))};sc.src=src;document.head.appendChild(sc)})}
+async function ensurePdfJs(){
+  if(window.pdfjsLib)return;
+  for(const V of CDNS){
+    try{await loadScript(V+'pdf.min.js',15000);if(!window.pdfjsLib)throw new Error('no lib');
+      try{const t=await(await fetch(V+'pdf.worker.min.js')).text();pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([t],{type:'text/javascript'}))}
+      catch(e){pdfjsLib.GlobalWorkerOptions.workerSrc=V+'pdf.worker.min.js'}
+      return}catch(e){}
+  }
+  throw new Error('ما قدرت أحمّل مكتبة قراءة الـ PDF من الإنترنت. تأكد من الاتصال وجرّب مرة ثانية.');
+}
+function diffRatio(a,b){ // share of pixels that differ between the clean render and the render with annotations (strip by strip)
+  const ga=a.getContext('2d'),gb=b.getContext('2d');let n=0,t=0;
+  for(let y=0;y<a.height;y+=100){const h=Math.min(100,a.height-y),da=ga.getImageData(0,y,a.width,h).data,db=gb.getImageData(0,y,a.width,h).data;
+    for(let i=0;i<da.length;i+=16){t++;if(Math.abs(da[i]-db[i])+Math.abs(da[i+1]-db[i+1])+Math.abs(da[i+2]-db[i+2])>60)n++}}
+  return n/Math.max(1,t)}
+async function stage(name,fn){try{return await fn()}catch(e){throw new Error(name+': '+(e&&e.message?e.message:e))}}
+async function loadPdf(){
+  const msg=$('#fileMsg');
+  try{
+    if(!S.buf)throw new Error('ما في ملف مقروء. اختار الملف من جديد.');
+    setStatus('عم أحمّل مكتبة قراءة الـ PDF...');await ensurePdfJs();
+    setStatus('عم أفتح الملف...');
+    const doc=await stage('فتح الملف',()=>pdfjsLib.getDocument({data:new Uint8Array(S.buf.slice(0))}).promise);
+    S.pages=doc.numPages;S.page=Math.min(Math.max(1,S.page||1),doc.numPages);
+    let autoMsg='';
+    if(S.autoPage){S.autoPage=false;let bestP=0,bestS=0;
+      for(let i=1;i<=Math.min(doc.numPages,40);i++){try{const an=await(await doc.getPage(i)).getAnnotations();let sc_=0;an.forEach(a=>{const tx=String((a.contentsObj&&a.contentsObj.str)||a.contents||'');
+        if(a.subtype==='Polygon'&&parseArea(tx))sc_+=5;else if(a.subtype==='Line'&&parseLen(tx))sc_+=1});if(sc_>bestS){bestS=sc_;bestP=i}}catch(e){}}
+      if(bestP&&bestP!==S.page){autoMsg='الصفحة '+S.page+' ما فيها قياسات، فتحت الصفحة '+bestP+' (فيها القياسات). ';S.page=bestP}}
+    const page=await stage('قراءة الصفحة',()=>doc.getPage(S.page)),v0=page.getViewport({scale:1}),sc=Math.min(4,2400/Math.max(v0.width,v0.height)),vp=page.getViewport({scale:sc});
+    const mk=()=>{const c=document.createElement('canvas');c.width=Math.round(vp.width);c.height=Math.round(vp.height);const g=c.getContext('2d',{willReadFrequently:true});g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);return c};
+    const cn=mk(),cn2=mk();
+    setStatus('عم أرسم الصفحة...');
+    await stage('رسم الصفحة',()=>page.render({canvasContext:cn.getContext('2d'),viewport:vp,annotationMode:0}).promise);
+    let withAnn=true;
+    try{await page.render({canvasContext:cn2.getContext('2d'),viewport:vp,annotationMode:1}).promise}catch(e){withAnn=false}
+    const annots=await stage('قراءة القياسات',()=>page.getAnnotations());
+    let tItems=[];try{tItems=(await page.getTextContent()).items}catch(e){}
+    useBase(cn,withAnn?cn2:null);S.pdfPage=page;
+    const r=readPdf(annots,(x,y)=>vp.convertToViewportPoint(x,y));
+    S.pxPerPt=sc;S.plabels=findScaleLabels(tItems,(x,y)=>vp.convertToViewportPoint(x,y));
+    S.dims=r.dims;S.polys=r.polys;S.ann=r.ann;S.pxFt=r.pxFt;S.err=r.err;S.spread=r.spread;calibratePrinted();
+    if(!S.pxFt&&S.plabels.length){S.pxFt=S.pxPerPt*864/S.plabels[0].N;S.usePrinted=true}
+    S.pieces=r.polys;S.pieces.forEach(pieceInfo);S.pieces.sort((a,b)=>b.sf-a.sf);
+    S.snap=S.polys.length>0||S.dims.length>0;{const ck2=document.querySelector('[data-k="snap"]');if(ck2)ck2.checked=S.snap}
+    S.showOv=annots.length>0&&(!withAnn||diffRatio(cn,cn2)<0.0004);
+    const ck=document.querySelector('[data-k="showOv"]');if(ck)ck.checked=S.showOv;
+    let t=autoMsg+'الصفحة '+S.page+' من '+S.pages+'. ';
+    if(S.pieces.length)t+='لقيت '+S.pieces.length+' قطعة مقاسة. ';else t+='ما لقيت مساحات مقاسة بهالصفحة'+(annots.length?'':' ولا قياسات')+'. ';
+    if(S.plabels.length)t+='مقاييس مطبوعة بالصفحة: '+[...new Set(S.plabels.map(l=>'1:'+l.N))].join('، ')+(S.usePrinted?' (بتنطبق على قياسات الملف). ':' (ما بتطابق قياسات الملف، فتجاهلتها). ');
+    if(S.pxFt)t+='المقياس انحدد من أرقام الملف. ';else t+='ما في مقياس: استخدم المعايرة اليدوية. ';
+    if(S.showOv)t+='pdf.js ما رسم القياسات فرسمتها أنا. ';
+    msg.textContent=t;
+    S.diag='تعليقات الصفحة: '+(Object.keys(r.cnt).length?Object.entries(r.cnt).map(([k,v])=>k+' '+v).join('، '):'ولا واحد')+'\nأبعاد مقروءة: '+S.dims.length+' · مساحات مقروءة: '+S.polys.length+(r.check?'\nالفرق بين المقياس من الأبعاد ومن المساحات: '+((r.check-1)*100).toFixed(2)+'%':'');
+    S.diag+=S.plabels.length?'\nمقاييس مطبوعة: '+S.plabels.map(l=>'1:'+l.N).join('، ')+(S.dims.length>=3?' · معامل التطابق مع الأبعاد: '+S.kappa.toFixed(4):''):'';
+    $('#diag').textContent=S.diag;$('#pageIn').value=S.page;
+    if(S.pieces.length)T.areas.mode='pick';
+    setTool(S.pieces.length?'areas':tool);resize();fit();
+  }catch(err){const m=(err&&err.message?err.message:String(err));msg.textContent='صار خطأ: '+m;renderFileBar();if(!S.base)setStatus('فشل فتح الـ PDF: '+m,true);else setStatus('فشل فتح الصفحة: '+m+' <button class="chip" data-a="menu">تفاصيل</button>',true)}
+}
+
+// ================= TOOL: AREAS =================
+const A={mode:'pan',poly:[],closed:false,smooth:true,sel:-1,px:0};
+const nextSign=s=>s===0?1:s===1?-1:0;
+function pieceDims(p){ // exact: from the polygon's own vertices; scale from its own measured area
+  const k=Math.sqrt(p.ap/p.sf),n=p.pts.length;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,per=0;
+  p.pts.forEach((q,i)=>{x0=Math.min(x0,q[0]);x1=Math.max(x1,q[0]);y0=Math.min(y0,q[1]);y1=Math.max(y1,q[1]);per+=D(q,p.pts[(i+1)%n])});
+  const P=per/k;return{W:(x1-x0)/k,H:(y1-y0)/k,P,eq:2*Math.sqrt(p.sf/Math.PI),circ:4*Math.PI*p.sf/(P*P)}}
+function pieceAt(x,y){let best=null,ba=1e18;S.pieces.forEach(p=>{if(p.ap<ba&&inPoly(x,y,p.pts)){ba=p.ap;best=p}});return best}
+function totals(){let t=0,n=0;S.pieces.forEach(p=>{if(p.sign){t+=p.sign*p.sf;n++}});return{t,n}}
+const polyPts=()=>A.poly.map(p=>[p.x,p.y]);
+function buildPolyArea(){
+  if(!A.closed||A.poly.length<3){A.px=0;return}
+  const t=document.createElement('canvas');t.width=S.W;t.height=S.H;const c=t.getContext('2d');
+  c.fillStyle='#fff';c.beginPath();pathOn(c,polyPts(),A.smooth,true);c.fill();
+  const d=c.getImageData(0,0,S.W,S.H).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>127)n++;A.px=n;
+}
+function polyResult(){
+  if(!A.px)return null;const k=scalePts_(A.poly);if(!k)return{noScale:true};
+  return{sf:A.px/(k*k),per:pathLen(polyPts(),A.smooth,true)/k,k};
+}
+const scalePts_=pts=>scaleP(pts);
+T.areas={
+  mode:'pan',
+  modes(){return[['pan','تحريك'],['pick','اختيار قطع'],['poly','رسم حدود']]},
+  extras(){
+    if(this.mode==='poly')return[['close','سكّر الشكل'],['undo','تراجع'],['del','حذف النقطة'],['smooth',A.smooth?'منحني':'مستقيم',A.smooth],['clr','مسح']];
+    if(this.mode==='pick')return[['clrSel','مسح التحديد']];return[]},
+  hint(){return({pan:'بإصبع واحد حرّك الصورة، وبإصبعين كبّر وصغّر.',pick:'اضغط على قطعة لتضيفها (+) أو تطرحها (−) أو تلغيها. المساحة مقروءة من الـ PDF.',
+    poly:'اضغط نقاط حوالين المنطقة، واسحب أي نقطة لتحريكها. اضغط أول نقطة أو «سكّر الشكل».'})[this.mode]},
+  reset(){A.poly=[];A.closed=false;A.sel=-1;A.px=0;this.mode=S.pieces&&S.pieces.length?'pick':'pan'},
+  tbx(k){
+    if(k==='close'){if(A.poly.length<3){alert('حط 3 نقاط على الأقل.');return}A.closed=true;A.sel=-1}
+    else if(k==='undo'){A.poly.pop();if(A.poly.length<3)A.closed=false;A.sel=-1}
+    else if(k==='del'){if(A.sel<0){alert('اضغط على نقطة لتحديدها أول.');return}A.poly.splice(A.sel,1);A.sel=-1;if(A.poly.length<3)A.closed=false}
+    else if(k==='smooth')A.smooth=!A.smooth;
+    else if(k==='clr'){A.poly=[];A.closed=false;A.sel=-1}
+    else if(k==='clrSel')S.pieces.forEach(p=>p.sign=0);
+    buildPolyArea();renderAll()},
+  tap(ix,iy,cx,cy){
+    if(this.mode==='pick'){const p=pieceAt(ix,iy);if(p){p.sign=nextSign(p.sign);renderPanel();draw()}}
+    else if(this.mode==='poly'){
+      const k=20/S.view.s;
+      if(!A.closed){
+        if(A.poly.length>=3&&Math.hypot(ix-A.poly[0].x,iy-A.poly[0].y)<k*1.4){A.closed=true;A.sel=-1}
+        else{const q=snapPt(ix,iy);A.poly.push({x:q[0],y:q[1]});A.sel=A.poly.length-1}
+      }else{
+        let best=-1,bd=1e9,bp=null;const n=A.poly.length;
+        for(let i=0;i<n;i++){const a=A.poly[i],b=A.poly[(i+1)%n],vx=b.x-a.x,vy=b.y-a.y,Lq=vx*vx+vy*vy||1;let t=((ix-a.x)*vx+(iy-a.y)*vy)/Lq;t=Math.max(0,Math.min(1,t));
+          const qx=a.x+t*vx,qy=a.y+t*vy,d=Math.hypot(ix-qx,iy-qy);if(d<bd){bd=d;best=i;bp={x:qx,y:qy}}}
+        if(bd<k*1.4){A.poly.splice(best+1,0,bp);A.sel=best+1}else A.sel=-1}
+      buildPolyArea();renderPanel();draw()}
+  },
+  hit(cx,cy){if(this.mode!=='poly')return null;const h=hitPts(A.poly,cx,cy,24);if(h)A.sel=A.poly.indexOf(h);return h},
+  drag(h,x,y){const q=snapPt(x,y);h.x=q[0];h.y=q[1]},
+  dragEnd(){buildPolyArea()},
+  draw(c,L){
+    const v=S.view;
+    if(S.pieces.length){
+      if(S.showOutl){c.lineWidth=1.2/v.s;c.strokeStyle='#E0642AAA';S.pieces.forEach(p=>{if(p.sign)return;c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.stroke()})}
+      S.pieces.forEach(p=>{if(!p.sign)return;c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.fillStyle=p.sign===1?'#14B86055':'#E5393555';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle=p.sign===1?'#0A7A3C':'#B3261E';c.stroke()});
+      if(S.showLbl)S.pieces.forEach(p=>{if(p.lp&&p.ap*v.s*v.s>=1800)L.push([p.lp[0],p.lp[1],(p.sign===1?'+ ':p.sign===-1?'− ':'')+p.txt,p.sign===1?'#0A7A3C':p.sign===-1?'#B3261E':'#000000',0])});
+    }
+    if(A.poly.length){const P=polyPts();c.beginPath();pathOn(c,P,A.smooth,A.closed);c.lineWidth=2.5/v.s;c.strokeStyle='#E0642A';c.stroke();
+      A.poly.forEach((p,i)=>{c.beginPath();c.arc(p.x,p.y,(i===A.sel?11:8)/v.s,0,7);c.fillStyle=i===A.sel?'#E0642A':'#fff';c.fill();c.lineWidth=2/v.s;c.strokeStyle='#E0642A';c.stroke()})}
+  },
+  panel(){
+    const tt=totals();let h='';
+    if(!S.base)return noFileCard();
+    h+='<div class="card"><div class="mut">المجموع المحدد ('+tt.n+' قطعة)</div><div class="big">'+sf2(tt.t)+'</div>'+
+      '<div class="row"><input type="text" id="aName" placeholder="اسم المجموع للسجل (مثلاً: كحلي خارجي)"></div>'+
+      '<div class="acts"><button class="btn sm g" data-a="areaLog">حفظ بالسجل</button><button class="btn sm alt" data-a="areaMat">للمواد</button></div></div>';
+    h+='<div class="card"><details><summary>إضافة مساحة معروفة يدوياً (مثلاً من ملاحظة المصمم)</summary><div class="row"><div><label>الاسم</label><input type="text" id="aMName" placeholder="مثلاً: Mineral Blue 1225"></div><div><label>المساحة</label><input type="number" id="aMVal" step="any" inputmode="decimal"></div></div><label>الوحدة</label><select id="aMU"><option value="1">قدم مربع (sf)</option><option value="10.7639">متر مربع (م²)</option></select><button class="btn g" data-a="manLogArea">أضفها للسجل</button></details></div>';
+    const pr=polyResult();
+    if(pr){h+='<div class="card"><div class="mut">مساحة الحدود اللي رسمتها</div>'+(pr.noScale?'<div class="warn">حدد المقياس أول (⋯).</div>':'<div class="big">'+sf2(pr.sf,1)+'</div><div class="mut">المقياس: '+scaleNote(A.poly)+'</div><div class="kv"><span>المحيط</span><b>'+fFt(pr.per)+'</b></div><div class="acts"><button class="btn sm g" data-a="polyLog">حفظ بالسجل</button><button class="btn sm alt" data-a="polyMat">للمواد</button></div>')+'</div>'}
+    if(S.pieces.length){
+      h+='<div class="card"><b>قطع الـ PDF</b> <span class="mut">(اضغط السطر: + ثم − ثم إلغاء)</span><table><tbody>'+
+        S.pieces.map((p,i)=>{const pd=p.sign?pieceDims(p):null;return '<tr data-a="pieceTap" data-i="'+i+'" style="background:'+(p.sign===1?'#DCEFE3':p.sign===-1?'#F6DAD3':'transparent')+'"><td><span class="sw" style="background:rgb('+p.rgb+')"></span>'+(p.name||'')+'</td><td>'+sf2(p.sf)+'</td><td style="font-size:20px;font-weight:700;text-align:center">'+(p.sign===1?'+':p.sign===-1?'−':'—')+'</td></tr>'+(pd?'<tr><td colspan="3" class="mut">العرض '+fFt(pd.W)+' × الارتفاع '+fFt(pd.H)+' · المحيط '+fFt(pd.P)+' · القطر المكافئ '+fFt(pd.eq)+(pd.circ>0.93?' <b>(تقريباً دائرة)</b>':'')+'</td></tr>':'')}).join('')+'</tbody></table></div>';
+    }else if(S.isPdf)h+='<div class="card warn">هالصفحة ما فيها مساحات مقاسة بالـ PDF. استخدم «رسم حدود» لحساب مساحة منطقة، أو جرّب صفحة ثانية.</div>';
+    else h+='<div class="card mut">الصورة بدون مساحات مقاسة: استخدم «رسم حدود» وحدد المقياس من الإعدادات (⋯).</div>';
+    return h;
+  }
+};
+
+// ================= TOOL: LINES (multi-point, straight/curved) =================
+const Ln={mode:'pan',lines:[],active:null,sel:null,idc:1,newCurved:true,spacing:'q',probes:[],pid:1,pickOrigin:false,guides:true,aligning:0,alignP:null};
+function metrics(l){
+  const P=l.pts.map(p=>[p.x,p.y]),n=P.length,curved=l.curved&&n>=3,segs=[];let all=[];
+  for(let i=0;i<n-1;i++){
+    const Sm=sampleSeg(P,i,curved,false,40),Lg=polyLen(Sm),c=D(P[i],P[i+1]);
+    let sag=0;Sm.forEach(q=>{const o=offsetOf(P[i],P[i+1],q);if(Math.abs(o)>Math.abs(sag))sag=o});
+    const s=Math.abs(sag),Rr=(s>c*0.002)?(c*c/(8*s)+s/2):Infinity;
+    segs.push({from:i,to:i+1,L:Lg,c,sag:s,side:s<1e-9?'':(sag>0?'يمين':'يسار'),R:Rr});all=all.concat(i?Sm.slice(1):Sm)}
+  const total=segs.reduce((a,s)=>a+s.L,0),chord=n>1?D(P[0],P[n-1]):0;
+  let maxDev=0,devSide='';if(n>1){all.forEach(q=>{const o=chord>1e-9?offsetOf(P[0],P[n-1],q):D(P[0],q);if(Math.abs(o)>Math.abs(maxDev))maxDev=o});devSide=(Math.abs(maxDev)<1e-9||chord<=1e-9)?'':sideW(maxDev)}
+  let turn=null;if(all.length>=3){const m=all.length;turn=turnAngle([all[1][0]-all[0][0],all[1][1]-all[0][1]],[all[m-1][0]-all[m-2][0],all[m-1][1]-all[m-2][1]])}
+  const verts=[];for(let i=1;i<n-1;i++){const a=turnAngle([P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]],[P[i+1][0]-P[i][0],P[i+1][1]-P[i][1]]);verts.push({i,ang:Math.abs(a),side:Math.abs(a)<0.05?'':(a>0?'يمين':'يسار')})}
+  return{P,curved,segs,total,chord,extra:total-chord,maxDev:Math.abs(maxDev),devSide,turn,verts};
+}
+function layoutRows(P,i,curved,spFt,k){
+  const a=P[i],b=P[i+1],c=D(a,b);if(c<1e-9)return[];
+  const Sm=sampleSeg(P,i,curved,false,80),ux=(b[0]-a[0])/c,uy=(b[1]-a[1])/c;
+  const xs=Sm.map(q=>(q[0]-a[0])*ux+(q[1]-a[1])*uy),os=Sm.map(q=>offsetOf(a,b,q));let Tt=[];
+  if(spFt>0&&k){let st=spFt*k;while(c/st>40)st*=2;for(let x=0;x<c-1e-6;x+=st)Tt.push(x);Tt.push(c)}else Tt=[0,0.25*c,0.5*c,0.75*c,c];
+  return Tt.map(x=>{let j=xs.findIndex(v=>v>=x),o;if(j<=0)o=os[0];else{const f=(x-xs[j-1])/((xs[j]-xs[j-1])||1);o=os[j-1]+f*(os[j]-os[j-1])}
+    if(xs[xs.length-1]<x)o=os[os.length-1];return{x,off:o}})}
+T.lines={
+  mode:'pan',
+  modes(){return[['pan','تحريك'],['draw','رسم خط'],['coord','إحداثيات نقطة']]},
+  extras(){if(this.mode==='coord')return[['org','تحديد نقطة الأصل',Ln.pickOrigin],['align','محاذاة مع خط الحدود',Ln.aligning>0],['guides','خطوط التوضيح',Ln.guides],['undo','تراجع'],['clr','مسح النقاط']];return this.mode==='draw'?[['type',(Ln.active?Ln.active.curved:Ln.newCurved)?'منحني':'مستقيم',(Ln.active?Ln.active.curved:Ln.newCurved)],['finish','إنهاء الخط'],['undo','تراجع'],['clr','مسح الكل']]:[]},
+  hint(){if(this.mode==='coord')return Ln.aligning===1?'اضغط على أول نقطة من خط الحدود (بتصير نقطة الأصل).':Ln.aligning===2?'اضغط على نقطة ثانية على نفس خط الحدود: بيصير محور X موازي له.':Ln.pickOrigin?'اضغط على نقطة الأصل (مثلاً زاوية مبنى أو نقطة معروفة).':'اضغط أي نقطة لتطلع إحداثياتها. اسحب الدائرة الخضرا (الأصل) أو أي محور (بيتحرك بخط مستقيم)، أو علامة X/Y الأرجوانية على محورها.';return this.mode==='draw'?'اضغط نقاط على طول الخط بالترتيب، واسحب أي نقطة لتظبيطها. «إنهاء الخط» لتبدأ خط جديد. المنحني بيحتاج 3 نقاط أو أكثر.':'بإصبع واحد حرّك الصورة، وبإصبعين كبّر وصغّر.'},
+  reset(){Ln.lines=[];Ln.active=null;Ln.sel=null;Ln.probes=[];Ln.pickOrigin=false},
+  tbx(k){
+    if(this.mode==='coord'){if(k==='org'){Ln.pickOrigin=!Ln.pickOrigin;Ln.aligning=0}else if(k==='align'){Ln.aligning=Ln.aligning?0:1;Ln.pickOrigin=false}else if(k==='guides')Ln.guides=!Ln.guides;else if(k==='undo')Ln.probes.pop();else if(k==='clr'){if(Ln.probes.length&&confirm('تمسح النقاط؟'))Ln.probes=[]}renderAll();return}
+    if(k==='type'){if(Ln.active){Ln.active.curved=!Ln.active.curved;Ln.newCurved=Ln.active.curved}else Ln.newCurved=!Ln.newCurved}
+    else if(k==='finish'){if(Ln.active&&Ln.active.pts.length<2)Ln.lines=Ln.lines.filter(l=>l!==Ln.active);Ln.active=null}
+    else if(k==='undo'){const l=Ln.active||Ln.lines[Ln.lines.length-1];if(l){l.pts.pop();if(!l.pts.length){Ln.lines=Ln.lines.filter(x=>x!==l);if(Ln.active===l)Ln.active=null}}}
+    else if(k==='clr'){if(Ln.lines.length&&confirm('تمسح كل الخطوط؟')){Ln.lines=[];Ln.active=null;Ln.sel=null}}
+    renderAll()},
+  tap(ix,iy,cx,cy){
+    if(this.mode==='coord'&&Ln.aligning===1){S.origin={x:ix,y:iy};Ln.alignP=[ix,iy];Ln.aligning=2;renderToolbar();renderPanel();draw();return}
+    if(this.mode==='coord'&&Ln.aligning===2){let a=Math.atan2(-(iy-Ln.alignP[1]),ix-Ln.alignP[0])/R;if(a>90)a-=180;else if(a<=-90)a+=180;S.ang=a;Ln.aligning=0;renderToolbar();renderPanel();draw();return}
+    if(this.mode==='coord'){const q=snapPt(ix,iy);if(Ln.pickOrigin){S.origin={x:q[0],y:q[1]};Ln.pickOrigin=false;renderToolbar()}else Ln.probes.push({id:Ln.pid++,x:q[0],y:q[1],name:'P'+(Ln.probes.length+1)});renderPanel();draw();return}
+    if(this.mode!=='draw')return;
+    const q=snapPt(ix,iy);if(!Ln.active){Ln.active={id:Ln.idc++,pts:[],curved:Ln.newCurved};Ln.lines.push(Ln.active)}
+    Ln.active.pts.push({x:q[0],y:q[1]});Ln.sel=Ln.active.id;renderToolbar();renderPanel();draw()},
+  hit(cx,cy){
+    if(this.mode==='coord'){
+      if(Ln.aligning)return null;
+      const M=toImg(cx,cy),F=frame(),o=F.o,near=(pt,r)=>{const sc_=toScr(pt[0],pt[1]);return Math.hypot(sc_[0]-cx,sc_[1]-cy)<r};
+      const along=(v,u)=>(v[0]-o.x)*u[0]+(v[1]-o.y)*u[1];
+      if(Ln.guides)for(const p of Ln.probes){const cc=coordOf(p.x,p.y),Fx=[o.x+F.ux[0]*cc.dx,o.y+F.ux[1]*cc.dx],Fy=[o.x+F.uy[0]*cc.dy,o.y+F.uy[1]*cc.dy];
+        if(near(Fx,26))return{kind:'mx',p,s0:along(M,F.ux)-cc.dx};
+        if(near(Fy,26))return{kind:'my',p,s0:along(M,F.uy)-cc.dy}}
+      if(S.origin&&near([o.x,o.y],28))return{kind:'o',off:[M[0]-o.x,M[1]-o.y]};
+      const hp=hitPts(Ln.probes,cx,cy);if(hp)return{kind:'p',p:hp};
+      if(S.origin){const dX=Math.abs(along(M,F.uy))*S.view.s,dY=Math.abs(along(M,F.ux))*S.view.s;
+        if(dX<20&&dX<=dY)return{kind:'ax',o0:{x:o.x,y:o.y},s0:along(M,F.uy)};     // the X axis: slides straight along Y
+        if(dY<20)return{kind:'ay',o0:{x:o.x,y:o.y},s0:along(M,F.ux)}}              // the Y axis: slides straight along X
+      return null}
+    if(this.mode!=='draw')return null;let best=null,bd=26;
+    Ln.lines.forEach(l=>l.pts.forEach(p=>{const[sx,sy]=toScr(p.x,p.y),d=Math.hypot(sx-cx,sy-cy);if(d<bd){bd=d;best={p,l}}}));if(best)Ln.sel=best.l.id;return best},
+  drag(h,x,y){
+    if(!h.kind){const q=snapPt(x,y);h.p.x=q[0];h.p.y=q[1];return}
+    const F=frame(),o=F.o,al=(px_,py_,u,b)=>(px_-b.x)*u[0]+(py_-b.y)*u[1];
+    if(h.kind==='p'){const q=snapPt(x,y);h.p.x=q[0];h.p.y=q[1]}
+    else if(h.kind==='o')S.origin={x:x-h.off[0],y:y-h.off[1]};
+    else if(h.kind==='mx'){const cc=coordOf(h.p.x,h.p.y),sX=al(x,y,F.ux,o)-h.s0;h.p.x=o.x+F.ux[0]*sX+F.uy[0]*cc.dy;h.p.y=o.y+F.ux[1]*sX+F.uy[1]*cc.dy}   // only along X
+    else if(h.kind==='my'){const cc=coordOf(h.p.x,h.p.y),sY=al(x,y,F.uy,o)-h.s0;h.p.x=o.x+F.ux[0]*cc.dx+F.uy[0]*sY;h.p.y=o.y+F.ux[1]*cc.dx+F.uy[1]*sY}   // only along Y
+    else if(h.kind==='ax'){const sd=al(x,y,F.uy,h.o0)-h.s0;S.origin={x:h.o0.x+F.uy[0]*sd,y:h.o0.y+F.uy[1]*sd}}
+    else if(h.kind==='ay'){const sd=al(x,y,F.ux,h.o0)-h.s0;S.origin={x:h.o0.x+F.ux[0]*sd,y:h.o0.y+F.ux[1]*sd}}
+  },
+  draw(c,L){
+    const v=S.view;
+    Ln.lines.forEach((l,li)=>{
+      const col=COL[li%COL.length],m=metrics(l),P=m.P,k=scaleP(l.pts);
+      if(l.id===Ln.sel&&P.length>=2){c.setLineDash([6/v.s,5/v.s]);c.lineWidth=1.5/v.s;c.strokeStyle='#444';c.beginPath();
+        if(m.curved)P.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.moveTo(P[0][0],P[0][1]);c.lineTo(P[P.length-1][0],P[P.length-1][1]);c.stroke();c.setLineDash([])}
+      c.lineWidth=(l.id===Ln.sel?4:3)/v.s;c.strokeStyle=col;c.beginPath();pathOn(c,P,m.curved,false);c.stroke();
+      m.segs.forEach(s=>{const Sm=sampleSeg(P,s.from,m.curved,false,40),a=Sm[Math.floor((Sm.length-1)/2)],b=Sm[Math.floor((Sm.length-1)/2)+1]||a;L.push([(a[0]+b[0])/2,(a[1]+b[1])/2,fK(s.L,k),col,-14])});
+      P.forEach((q,i)=>{c.beginPath();c.arc(q[0],q[1],8/v.s,0,7);c.fillStyle=(Ln.active&&Ln.active.id===l.id&&i===P.length-1)?col:'#fff';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle=col;c.stroke();L.push([q[0],q[1],nameFor(i),null,0])});
+    });
+    const coord=this.mode==='coord';
+    if((coord&&S.origin)||(Ln.guides&&Ln.probes.length)){
+      const F=frame(),o=F.o,len=S.W+S.H;
+      c.setLineDash([]);c.lineWidth=2/v.s;c.strokeStyle=coord?'#0B8457CC':'#0B845777';c.beginPath();
+      c.moveTo(o.x-F.ux[0]*len,o.y-F.ux[1]*len);c.lineTo(o.x+F.ux[0]*len,o.y+F.ux[1]*len);
+      c.moveTo(o.x-F.uy[0]*len,o.y-F.uy[1]*len);c.lineTo(o.x+F.uy[0]*len,o.y+F.uy[1]*len);c.stroke();
+      c.beginPath();c.arc(o.x,o.y,(coord?9:5)/v.s,0,7);c.fillStyle='#0B8457';c.fill();if(coord){c.lineWidth=2.5/v.s;c.strokeStyle='#fff';c.stroke()}
+      L.push([o.x+F.ux[0]*70/v.s,o.y+F.ux[1]*70/v.s,'X +','#0B8457',-12]);L.push([o.x+F.uy[0]*70/v.s,o.y+F.uy[1]*70/v.s,'Y +','#0B8457',-12]);L.push([o.x,o.y,'الأصل (0 , 0)','#0B8457',22]);
+      if(Ln.guides)Ln.probes.forEach(p=>{const cc=coordOf(p.x,p.y),Fx=[o.x+F.ux[0]*cc.dx,o.y+F.ux[1]*cc.dx],Fy=[o.x+F.uy[0]*cc.dy,o.y+F.uy[1]*cc.dy];
+        c.setLineDash([7/v.s,5/v.s]);c.lineWidth=2/v.s;c.strokeStyle='#B04BE0';c.beginPath();c.moveTo(p.x,p.y);c.lineTo(Fx[0],Fx[1]);c.moveTo(p.x,p.y);c.lineTo(Fy[0],Fy[1]);c.stroke();c.setLineDash([]);
+        [Fx,Fy].forEach(q=>{c.beginPath();c.arc(q[0],q[1],(coord?8:4)/v.s,0,7);c.fillStyle='#B04BE0';c.fill();if(coord){c.lineWidth=2/v.s;c.strokeStyle='#fff';c.stroke()}});
+        L.push([Fx[0],Fx[1],'X = '+cX(cc),'#B04BE0',cc.dy>0?18:-18]);L.push([Fy[0],Fy[1],'Y = '+cY(cc),'#B04BE0',-16])});
+    }
+    Ln.probes.forEach(p=>{c.beginPath();c.moveTo(p.x,p.y-9/v.s);c.lineTo(p.x+9/v.s,p.y);c.lineTo(p.x,p.y+9/v.s);c.lineTo(p.x-9/v.s,p.y);c.closePath();c.fillStyle='#fff';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle='#B04BE0';c.stroke();
+      L.push([p.x,p.y,p.name+' ('+coordShort(coordOf(p.x,p.y))+')','#B04BE0',-20])});
+  },
+  panel(){
+    if(!S.base)return noFileCard();
+    const cc=(this.mode==='coord'||Ln.probes.length)?coordCard():'';
+    if(this.mode==='coord'&&!Ln.lines.length)return cc;
+    let h=cc+'<div class="card"><label style="margin-top:0">جدول التوقيع على الأرض: المحطات على الوتر</label><select data-c="spacing"><option value="q"'+(Ln.spacing==='q'?' selected':'')+'>ربعيات (5 نقاط)</option><option value="1"'+(Ln.spacing==='1'?' selected':'')+'>كل 1 ft</option><option value="2"'+(Ln.spacing==='2'?' selected':'')+'>كل 2 ft</option><option value="5"'+(Ln.spacing==='5'?' selected':'')+'>كل 5 ft</option></select></div>';
+    if(!Ln.lines.length)return h+'<div class="card warn">ما في خطوط بعد. اختار «رسم خط» من فوق، واضغط نقاط على الرسم.</div>';
+    let sumFt=0;
+    Ln.lines.forEach((l,i)=>{h+=lineCard(l,i);if(l.pts.length>1)sumFt+=metrics(l).total/(scaleP(l.pts)||Infinity)});
+    if(Ln.lines.length>1)h+='<p class="mut">مجموع أطوال كل الخطوط: <b>'+fFt(sumFt)+'</b></p>';
+    return h+'<button class="btn alt" data-a="lnCopy">نسخ الأرقام</button>';
+  }
+};
+const COL=['#1F6FEB','#E0642A','#14B860','#B04BE0','#E0B400','#E5395A'];
+function coordCard(){
+  let h='<div class="card"><b>الإحداثيات</b> <span class="mut">(X لليمين، Y لفوق، من نقطة الأصل)</span>'+
+    '<div class="status" style="margin-top:6px">نقطة الأصل: '+(S.origin?'<b>مكانها بالرسم</b> <button class="btn alt sm" data-a="orgReset">رجّع المحاور (أفقي/عامودي)</button>':'زاوية الصفحة اليسرى السفلى.')+(S.ang?'<br>المحور X مائل <b>'+iso(S.ang.toFixed(1)+'°')+'</b> عن أفقي الصفحة (مظبوط على خط الحدود).':'')+'<div class="mut">حرّك المحاور بإيدك: اسحب <b>الدائرة الخضرا</b> (الأصل) بحرية، أو <b>أي محور</b> وبيتحرك بخط مستقيم عمودي عليه، أو علامة <b>X/Y الأرجوانية</b> على محورها لتحريك النقطة بخط مستقيم. وزر «محاذاة مع خط الحدود» بيخلي المحور X موازي لحدود الملعب (اضغط نقطتين عليها).</div></div>';
+  if(!Ln.probes.length)h+='<div class="mut" style="margin-top:6px">اضغط أي نقطة على المخطط وبتطلع إحداثياتها.</div>';
+  else{
+    h+='<table><thead><tr><th>النقطة</th><th>X</th><th>Y</th><th>البعد</th><th></th></tr></thead><tbody>'+Ln.probes.map(p=>{const c=coordOf(p.x,p.y);
+      return'<tr><td><b>'+p.name+'</b>'+(c.warn?' ⚠':'')+'</td><td>'+cX(c)+'</td><td>'+cY(c)+'</td><td>'+(c.k?fFt(c.dist/c.k):Math.round(c.dist)+' px')+'</td><td><button class="btn alt sm" data-a="prDel" data-id="'+p.id+'">حذف</button></td></tr>'}).join('')+'</tbody></table>';
+    if(Ln.probes.some(p=>coordOf(p.x,p.y).warn))h+='<div class="warn">⚠ النقطة والأصل بمقياسين مختلفين (رسمتين مختلفتين)، فالأرقام غير صالحة. اختار الأصل داخل نفس الرسمة.</div>';
+    h+='<div class="acts"><button class="btn alt sm" data-a="prCopy">نسخ الإحداثيات</button></div>'}
+  return h+'</div>'}
+function lineCard(l,i){
+  const m=metrics(l),c=COL[i%COL.length],k=scaleP(l.pts),ty=m.curved?'منحني':'مستقيم';
+  let h='<div class="card'+(l.id===Ln.sel?' sel':'')+'"><span class="sw" style="background:'+c+'"></span><b>الخط L'+(i+1)+'</b> <span class="mut">('+ty+(Ln.active&&Ln.active.id===l.id?'، قيد الرسم':'')+')</span>';
+  if(m.P.length<2)return h+'<div class="mut">حط نقطة ثانية على الأقل.</div></div>';
+  h+='<div class="big">'+fK(m.total,k)+'</div><div class="mut">الطول الكلي على الخط '+altK(m.total,k)+' · المقياس: '+scaleNote(l.pts)+'</div>'+
+    '<div class="kv"><span>المسافة المستقيمة (أول↔آخر نقطة)</span><b>'+fK(m.chord,k)+'</b></div>'+
+    '<div class="kv"><span>الفرق (مقدار الانحناء بالطول)</span><b>'+fK(m.extra,k)+(m.chord>0?' ('+iso((m.extra/m.chord*100).toFixed(1)+'%')+')':'')+'</b></div>'+
+    '<div class="kv"><span>أقصى ابتعاد عن الخط المستقيم</span><b>'+fK(m.maxDev,k)+(m.devSide?' '+m.devSide:'')+'</b></div>'+
+    (m.turn!==null&&Math.abs(m.turn)>0.05?'<div class="kv"><span>زاوية الانحناء الكلية</span><b>'+iso(Math.abs(m.turn).toFixed(1)+'°')+' '+(m.turn>0?'لليمين':'لليسار')+'</b></div>':'');
+  h+='<table><thead><tr><th>المقطع</th><th>الطول</th><th>المستقيم</th><th>'+(m.curved?'الانحناء':'الانحراف عند آخره')+'</th>'+(m.curved?'<th>نصف القطر</th>':'')+'</tr></thead><tbody>';
+  m.segs.forEach(s=>{const v=m.verts.find(x=>x.i===s.to);
+    h+='<tr><td><b>'+nameFor(s.from)+'→'+nameFor(s.to)+'</b></td><td>'+fK(s.L,k)+'</td><td>'+fK(s.c,k)+'</td>';
+    if(m.curved)h+='<td>'+fK(s.sag,k)+(s.side?' '+s.side:'')+'</td><td>'+(isFinite(s.R)?fK(s.R,k):'مستقيم')+'</td>';
+    else h+='<td>'+(v?iso(v.ang.toFixed(1)+'°')+(v.side?' '+v.side:''):'—')+'</td>';
+    h+='</tr>'});
+  h+='</tbody></table>';
+  if(m.curved)h+=layoutBlock(m,k);
+  h+='<details><summary>إحداثيات النقاط (X, Y)</summary><table><thead><tr><th>النقطة</th><th>X</th><th>Y</th></tr></thead><tbody>'+l.pts.map((p,j)=>{const c=coordOf(p.x,p.y);return'<tr><td><b>'+nameFor(j)+'</b>'+(c.warn?' ⚠':'')+'</td><td>'+cX(c)+'</td><td>'+cY(c)+'</td></tr>'}).join('')+'</tbody></table><div class="mut">من نقطة الأصل: '+(S.origin?'اللي حددتها بالرسم':'زاوية الصفحة اليسرى السفلى')+'. لتغييرها: «إحداثيات نقطة» ← «تحديد نقطة الأصل».</div></details>';
+  h+='<details><summary>ضبط المقياس من مسافة معروفة</summary><div class="mut">اكتب المسافة المستقيمة الحقيقية بين نقطتين من هالخط (مقاسة بالشريط).</div><div class="row2"><select data-rs="'+l.id+'">'+m.segs.map(s=>'<option value="'+s.from+'">'+nameFor(s.from)+'→'+nameFor(s.to)+'</option>').join('')+'</select><input type="number" step="any" inputmode="decimal" placeholder="ft" data-rl="'+l.id+'"><button class="btn sm" data-a="lnRef" data-id="'+l.id+'">اعتمد</button></div></details>';
+  h+='<div class="acts"><button class="btn alt sm" data-a="lnType" data-id="'+l.id+'">'+(l.curved?'خليه مستقيم':'خليه منحني')+'</button><button class="btn alt sm" data-a="lnSel" data-id="'+l.id+'">تحديد</button><button class="btn alt sm" data-a="lnDel" data-id="'+l.id+'">حذف</button></div></div>';
+  return h;
+}
+function layoutBlock(m,k){
+  const sp=Ln.spacing==='q'?0:+Ln.spacing;
+  let h='<details><summary>التوقيع على الأرض</summary><div class="mut">وإنت واقف عند أول نقطة ومتجه لثاني نقطة: «يمين» = على يمينك. قيس الانحناء عامودياً على الوتر (الخيط المشدود بين النقطتين).</div>';
+  m.segs.forEach(s=>{const a=nameFor(s.from),b=nameFor(s.to);
+    h+='<div style="margin-top:8px"><b>'+a+'→'+b+'</b>: وتر '+fK(s.c,k)+' · أقصى انحناء <b>'+fK(s.sag,k)+'</b>'+(s.side?' '+s.side:'');
+    if(isFinite(s.R)&&s.sag<=s.c/2){const opp=s.side==='يمين'?'يسار':'يمين';h+='<br><span class="mut">نصف القطر '+fK(s.R,k)+' · مركز القوس على بُعد '+fK(s.R-s.sag,k)+' من منتصف الوتر، جهة ال'+opp+'</span>'}
+    h+='</div>';
+    if(!isFinite(s.R)){h+='<div class="mut">المقطع مستقيم تقريباً.</div>';return}
+    h+='<table><thead><tr><th>المسافة من '+a+' على الوتر</th><th>الانحناء عن الوتر</th></tr></thead><tbody>';
+    layoutRows(m.P,s.from,m.curved,sp,k).forEach(r=>{const mm=k?Math.abs(r.off)/k:null;h+='<tr><td>'+fK(r.x,k)+'</td><td>'+(mm!==null&&mm<0.005?'0':fK(Math.abs(r.off),k)+' '+(r.off>0?'يمين':'يسار'))+'</td></tr>'});
+    h+='</tbody></table>'});
+  return h+'</details>';
+}
+
+// ================= TOOL: CIRCLES (fit + manual centre & radius) =================
+const C={mode:'pan',rings:[],cur:0,conc:true,man:[],lms:[],idc:1,pickR:null,lastR:10,pc:[]};
+function solve(M,b){const n=b.length,A_=M.map((r,i)=>[...r,b[i]]);
+  for(let c=0;c<n;c++){let p=c;for(let r=c+1;r<n;r++)if(Math.abs(A_[r][c])>Math.abs(A_[p][c]))p=r;if(Math.abs(A_[p][c])<1e-12)return null;[A_[c],A_[p]]=[A_[p],A_[c]];
+    for(let r=c+1;r<n;r++){const f=A_[r][c]/A_[c][c];for(let k=c;k<=n;k++)A_[r][k]-=f*A_[c][k]}}
+  const x=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=A_[i][n];for(let k=i+1;k<n;k++)s-=A_[i][k]*x[k];x[i]=s/A_[i][i]}return x}
+function kasa(P){const n=P.length;let mx=0,my=0;P.forEach(p=>{mx+=p.x;my+=p.y});mx/=n;my/=n;
+  let Suu=0,Suv=0,Svv=0,Suuu=0,Svvv=0,Suvv=0,Svuu=0;
+  P.forEach(p=>{const u=p.x-mx,v=p.y-my;Suu+=u*u;Suv+=u*v;Svv+=v*v;Suuu+=u*u*u;Svvv+=v*v*v;Suvv+=u*v*v;Svuu+=v*u*u});
+  const s=solve([[Suu,Suv],[Suv,Svv]],[0.5*(Suuu+Suvv),0.5*(Svvv+Svuu)]);return s?{a:mx+s[0],b:my+s[1]}:null}
+function fitGroups(G,conc){
+  const all=[].concat(...G);if(all.length<3)return null;
+  if(!conc)return G.map(P=>P.length>=3?fitGroups([P],true):null);
+  const big=G.reduce((m,g)=>g.length>m.length?g:m,[]),k=kasa(big.length>=3?big:all);if(!k)return null;
+  let a=k.a,b=k.b;const m=G.length;let r=G.map(P=>P.length?P.reduce((s,p)=>s+Math.hypot(p.x-a,p.y-b),0)/P.length:0);
+  for(let it=0;it<30;it++){const N=2+m,JTJ=Array.from({length:N},()=>new Array(N).fill(0)),JTr=new Array(N).fill(0);
+    G.forEach((P,g)=>P.forEach(p=>{const dx=p.x-a,dy=p.y-b,d=Math.hypot(dx,dy)||1e-9,res=d-r[g],J=new Array(N).fill(0);J[0]=-dx/d;J[1]=-dy/d;J[2+g]=-1;
+      for(let i=0;i<N;i++){JTr[i]+=J[i]*res;for(let j=0;j<N;j++)JTJ[i][j]+=J[i]*J[j]}}));
+    for(let i=0;i<N;i++)JTJ[i][i]+=1e-9;const dl=solve(JTJ,JTr.map(v=>-v));if(!dl)break;
+    a+=dl[0];b+=dl[1];for(let g=0;g<m;g++)r[g]+=dl[2+g];if(Math.hypot(dl[0],dl[1])<1e-7)break}
+  return{a,b,r}}
+function devStats(P,a,b,r){const d=P.map(p=>Math.hypot(p.x-a,p.y-b)-r);return{d,rms:Math.sqrt(d.reduce((s,v)=>s+v*v,0)/(d.length||1)),max:d.reduce((m,v)=>Math.max(m,Math.abs(v)),0)}}
+function computeRings(){
+  const act=C.rings.filter(r=>r.pts.length>=1),res=new Map();
+  if(C.conc){const G=act.map(r=>r.pts);if(G.reduce((s,g)=>s+g.length,0)>=3&&G.some(g=>g.length>=3)){const f=fitGroups(G,true);if(f)act.forEach((r,i)=>res.set(r.id,{a:f.a,b:f.b,r:f.r[i]}))}}
+  else act.forEach(r=>{if(r.pts.length>=3){const f=fitGroups([r.pts],true);if(f)res.set(r.id,{a:f.a,b:f.b,r:f.r[0]})}});
+  C.rings.forEach(r=>{r.fit=res.get(r.id)||null;r.st=r.fit?devStats(r.pts,r.fit.a,r.fit.b,r.fit.r):null});
+}
+const fDev=(v,k)=>Math.abs(v)<1e-9?'0':(fK(Math.abs(v),k)+' '+(v>0?'داخل':'خارج')); // v>0 : white line lies outside the ideal circle -> move toward centre
+function lmLine(x,y){const k=scaleAt(x,y);return C.lms.map(l=>l.name+': '+fK(Math.hypot(l.x-x,l.y-y),k)).join(' · ')}
+T.circles={
+  mode:'pan',
+  modes(){return[['pan','تحريك'],['ring','نقاط حلقة'],['center','مركز + نصف قطر'],['lm','معلم ثابت']].concat(S.pieces.length?[['piece','دائرة من قطعة PDF']]:[])},
+  extras(){
+    if(this.mode==='ring')return[['newRing','حلقة جديدة'],['undo','تراجع'],['conc','مركز مشترك: '+(C.conc?'شغّال':'طافي'),C.conc],['clr','مسح الكل']];
+    if(this.mode==='center')return[['clrMan','مسح الدوائر اليدوية']];
+    if(this.mode==='piece')return[['clrPc','مسح دوائر القطع']];return[]},
+  hint(){return({pan:'بإصبع واحد حرّك الصورة، وبإصبعين كبّر وصغّر.',
+    ring:'حط 6 نقاط أو أكثر موزعة حوالين الخط الأبيض (كل ما كانت أبعد عن بعض أدق). «حلقة جديدة» للخط الثاني. اسحب أي نقطة لتظبيطها.',
+    center:C.pickR?'اضغط على نقطة بالصورة لتحدد نصف القطر منها.':'اضغط لتحط مركز الدائرة (ورقم نصف القطر بتكتبه تحت). اسحب المركز لتحريكه.',
+    lm:'اضغط على معلم ثابت (زاوية رصيف، حجر، وتد) لتحسب بُعد المراكز عنه.',
+    piece:'اضغط على قطعة دائرية من الـ PDF: بيلاقي أقرب دائرة لحدودها بالضبط، وبيطلع قطرها بدون ما تحدد نقاط.'})[this.mode]},
+  reset(){C.rings=[];C.cur=0;C.man=[];C.lms=[];C.pickR=null;C.pc=[]},
+  tbx(k){
+    if(k==='newRing'){if(!(C.rings.length&&!C.rings[C.cur].pts.length)){C.rings.push({id:C.idc++,pts:[]});C.cur=C.rings.length-1}}
+    else if(k==='undo'){const r=C.rings[C.cur];if(r){r.pts.pop();if(!r.pts.length&&C.rings.length>1){C.rings.splice(C.cur,1);C.cur=Math.max(0,C.cur-1)}}}
+    else if(k==='conc')C.conc=!C.conc;
+    else if(k==='clr'){if((C.rings.length||C.lms.length)&&confirm('تمسح كل الحلقات والمعالم؟')){C.rings=[];C.lms=[];C.cur=0}}
+    else if(k==='clrMan'){if(C.man.length&&confirm('تمسح الدوائر اليدوية؟'))C.man=[]}
+    else if(k==='clrPc'){if(C.pc.length&&confirm('تمسح دوائر القطع؟'))C.pc=[]}
+    computeRings();renderAll()},
+  tap(ix,iy){
+    if(this.mode==='ring'){if(!C.rings.length)C.rings.push({id:C.idc++,pts:[]});C.rings[C.cur].pts.push({x:ix,y:iy});computeRings()}
+    else if(this.mode==='center'){
+      if(C.pickR){const m=C.man.find(c=>c.id===C.pickR),k=m&&scaleAt(m.x,m.y);if(m&&k){m.rFt=Math.hypot(ix-m.x,iy-m.y)/k;C.lastR=m.rFt}C.pickR=null;renderToolbar()}
+      else{const k=scaleAt(ix,iy);if(!k){alert('حدد المقياس أول (⋯).');return}C.man.push({id:C.idc++,x:ix,y:iy,rFt:C.lastR})}}
+    else if(this.mode==='piece'){const p=pieceAt(ix,iy);if(!p){renderPanel();draw();return}
+      const step=Math.max(1,Math.floor(p.pts.length/150)),pts=p.pts.filter((_,i)=>i%step===0).map(q=>({x:q[0],y:q[1]})),f=fitGroups([pts],true);
+      if(!f){alert('ما قدرت أحسب دائرة لهالقطعة.');return}const st=devStats(pts,f.a,f.b,f.r[0]),k=Math.sqrt(p.ap/p.sf);
+      C.pc.push({id:C.idc++,txt:p.txt,a:f.a,b:f.b,r:f.r[0],k,max:st.max,rms:st.rms,sf:p.sf})}
+    else if(this.mode==='lm')C.lms.push({id:C.idc++,x:ix,y:iy,name:'M'+(C.lms.length+1)});
+    renderPanel();draw()},
+  hit(cx,cy){
+    if(this.mode==='ring'){const arr=[].concat(...C.rings.map(r=>r.pts));return hitPts(arr,cx,cy)}
+    if(this.mode==='center'&&!C.pickR)return hitPts(C.man,cx,cy,30);return null},
+  drag(h,x,y){h.x=x;h.y=y;if(this.mode==='ring')computeRings()},
+  dragEnd(){computeRings()},
+  draw(c,L){
+    const v=S.view;
+    C.rings.forEach((r,i)=>{const col=COL[(i*5)%COL.length]==='#1F6FEB'?'#D32F2F':RC[i%RC.length];
+      if(r.fit){c.lineWidth=2.5/v.s;c.strokeStyle=col;c.beginPath();c.arc(r.fit.a,r.fit.b,r.fit.r,0,Math.PI*2);c.stroke();
+        c.beginPath();c.moveTo(r.fit.a-10/v.s,r.fit.b);c.lineTo(r.fit.a+10/v.s,r.fit.b);c.moveTo(r.fit.a,r.fit.b-10/v.s);c.lineTo(r.fit.a,r.fit.b+10/v.s);c.stroke();
+        L.push([r.fit.a,r.fit.b-r.fit.r,'R'+(i+1)+' '+fK(r.fit.r,scaleAt(r.fit.a,r.fit.b)),col,-12])}
+      r.pts.forEach(p=>{c.beginPath();c.arc(p.x,p.y,6/v.s,0,7);c.fillStyle=i===C.cur?'#fff':'#ffffffaa';c.fill();c.lineWidth=2.2/v.s;c.strokeStyle=col;c.stroke()})});
+    C.man.forEach((m,i)=>{const k=scaleAt(m.x,m.y);if(!k)return;const rp=m.rFt*k;c.lineWidth=2.5/v.s;c.strokeStyle='#0B8457';c.beginPath();c.arc(m.x,m.y,rp,0,Math.PI*2);c.stroke();
+      c.beginPath();c.arc(m.x,m.y,7/v.s,0,7);c.fillStyle='#fff';c.fill();c.stroke();c.beginPath();c.moveTo(m.x-12/v.s,m.y);c.lineTo(m.x+12/v.s,m.y);c.moveTo(m.x,m.y-12/v.s);c.lineTo(m.x,m.y+12/v.s);c.stroke();
+      L.push([m.x,m.y-rp,'D'+(i+1)+' نق '+fFt(m.rFt),'#0B8457',-12])});
+    C.pc.forEach(m=>{c.lineWidth=2.5/v.s;c.strokeStyle='#0891B2';c.beginPath();c.arc(m.a,m.b,m.r,0,Math.PI*2);c.stroke();c.beginPath();c.moveTo(m.a-10/v.s,m.b);c.lineTo(m.a+10/v.s,m.b);c.moveTo(m.a,m.b-10/v.s);c.lineTo(m.a,m.b+10/v.s);c.stroke();L.push([m.a,m.b-m.r,'Ø '+fFt(2*m.r/m.k),'#0891B2',-12])});
+    C.lms.forEach(l=>{c.beginPath();c.moveTo(l.x,l.y-9/v.s);c.lineTo(l.x+8/v.s,l.y+7/v.s);c.lineTo(l.x-8/v.s,l.y+7/v.s);c.closePath();c.fillStyle='#1B2233';c.fill();L.push([l.x,l.y,l.name,'#1B2233',-20])});
+  },
+  panel(){
+    if(!S.base)return noFileCard();
+    let h='';
+    C.pc.forEach(m=>{h+='<div class="card"><span class="sw" style="background:#0891B2"></span><b>دائرة من قطعة '+m.txt+'</b><div class="big">Ø '+fFt(2*m.r/m.k)+'</div><div class="mut">القطر '+altK(2*m.r,m.k)+' (المقياس من مساحة القطعة المكتوبة بالملف، يعني دقيق)</div>'+
+      '<div class="kv"><span>نصف القطر</span><b>'+fFt(m.r/m.k)+'</b></div><div class="kv"><span>المحيط</span><b>'+fFt(2*Math.PI*m.r/m.k)+'</b></div>'+
+      '<div class="kv"><span>مساحة الدائرة المطابقة</span><b>'+sf2(Math.PI*m.r*m.r/(m.k*m.k))+'</b></div><div class="kv"><span>مساحة القطعة بالملف</span><b>'+sf2(m.sf)+'</b></div>'+
+      '<div class="kv"><span>أقصى انحراف عن الدائرة</span><b>'+fFt(m.max/m.k)+'</b></div><div class="acts"><button class="btn alt sm" data-a="pcDel" data-id="'+m.id+'">حذف</button></div></div>'});
+    C.man.forEach((m,i)=>{const k=scaleAt(m.x,m.y);
+      h+='<div class="card"><span class="sw" style="background:#0B8457"></span><b>دائرة D'+(i+1)+'</b> <span class="mut">(مركزك + نصف القطر)</span>'+
+        '<div class="row2"><span class="mut">نصف القطر (ft)</span><input type="number" step="any" inputmode="decimal" value="'+(+m.rFt.toFixed(3))+'" data-c="manR" data-id="'+m.id+'"><button class="btn alt sm" data-a="manStep" data-id="'+m.id+'" data-d="-0.5">−½</button><button class="btn alt sm" data-a="manStep" data-id="'+m.id+'" data-d="0.5">+½</button></div>'+
+        '<div class="kv"><span>القطر</span><b>'+fFt(2*m.rFt)+'</b></div><div class="kv"><span>المحيط</span><b>'+fFt(2*Math.PI*m.rFt)+'</b></div>'+
+        (C.lms.length?'<div class="mut" style="margin-top:6px">بُعد المركز عن المعالم: '+lmLine(m.x,m.y)+'</div>':'')+
+        '<div class="acts"><button class="btn alt sm" data-a="manPick" data-id="'+m.id+'">نصف القطر من نقطة</button><button class="btn alt sm" data-a="manSame" data-id="'+m.id+'">دائرة ثانية بنفس المركز</button><button class="btn alt sm" data-a="manDel" data-id="'+m.id+'">حذف</button></div></div>'});
+    C.rings.forEach((r,i)=>{const col=RC[i%RC.length];
+      h+='<div class="card"><span class="sw" style="background:'+col+'"></span><b>الحلقة R'+(i+1)+'</b> <span class="mut">('+r.pts.length+' نقطة'+(i===C.cur?'، الفعّالة':'')+')</span>';
+      if(!r.fit)h+='<div class="mut">'+(r.pts.length<3?'حط 3 نقاط على الأقل.':'لازم نقاط أكثر أو موزعة أكثر حوالين الدائرة.')+'</div>';
+      else{const f=r.fit,s=r.st,k=scaleAt(f.a,f.b);
+        h+='<div class="big">'+fK(f.r,k)+'</div><div class="mut">نصف القطر '+altK(f.r,k)+' · المقياس: '+scaleNote([{x:f.a,y:f.b}])+'</div><div class="kv"><span>القطر</span><b>'+fK(2*f.r,k)+'</b></div><div class="kv"><span>المحيط</span><b>'+fK(2*Math.PI*f.r,k)+'</b></div>'+
+          '<div class="kv"><span>أقصى ابتعاد للخط الأبيض عن الدائرة</span><b>'+fK(s.max,k)+'</b></div><div class="kv"><span>معدل الابتعاد</span><b>'+fK(s.rms,k)+'</b></div>'+
+          '<details><summary>انحراف كل نقطة (كم تزيح)</summary><table><thead><tr><th>النقطة</th><th>الانحراف</th></tr></thead><tbody>'+r.pts.map((p,j)=>'<tr><td>'+(j+1)+'</td><td>'+fDev(s.d[j],k)+'</td></tr>').join('')+'</tbody></table><div class="mut">«داخل» = الخط الأبيض أبعد من الدائرة الصحيحة، فزحه لجهة المركز. «خارج» = العكس.</div></details>'+
+          (C.lms.length?'<div class="mut" style="margin-top:6px">بُعد المركز عن المعالم: '+lmLine(f.a,f.b)+'</div>':'')+
+          '<div class="acts"><button class="btn alt sm" data-a="ringToMan" data-id="'+r.id+'">ارسم دائرة من مركزها</button></div>'}
+      h+='<div class="acts"><button class="btn alt sm" data-a="ringAct" data-id="'+r.id+'">خليها الفعّالة</button><button class="btn alt sm" data-a="ringDel" data-id="'+r.id+'">حذف</button></div></div>'});
+    if(!C.man.length&&!C.rings.length)h+='<div class="card mut"><b>طريقتين:</b><br>• <b>نقاط حلقة:</b> حط نقاط على خط أبيض، والبرنامج بيلاقي أقرب دائرة صحيحة وبيقلك قديش لازم تزيح.<br>• <b>مركز + نصف قطر:</b> أنت بتحدد المركز ونصف القطر (بالقدم) وبيرسم الدائرة.</div>';
+    if(C.lms.length)h+='<div class="card"><b>المعالم الثابتة</b><table><tbody>'+C.lms.map(l=>'<tr><td><b>'+l.name+'</b></td><td>'+(C.lms.filter(o=>o.id!==l.id).map(o=>'→'+o.name+' '+fK(Math.hypot(l.x-o.x,l.y-o.y),scaleAt(l.x,l.y))).join(' · ')||'—')+'</td><td><button class="btn alt sm" data-a="lmDel" data-id="'+l.id+'">حذف</button></td></tr>').join('')+'</tbody></table></div>';
+    h+='<p class="mut">للتطبيق على الأرض: حدد المركز بقياس مسافته عن معلمين ثابتين، علّمه بوتد، وارسم الدائرة بشريط أو خيط بطول نصف القطر. صورة الجو فيها انحراف عدسة ومنظور، فالأرقام تقريبية خصوصاً بأطراف الصورة.</p>';
+    return h;
+  }
+};
+const RC=['#D32F2F','#E0642A','#B04BE0','#1F6FEB','#14B860','#E0B400'];
+
+// ================= TOOL: ANGLES (acute / obtuse, 3 points or 2 lines) =================
+const N={mode:'pan',items:[],cur:[],idc:1,sel:'obtuse'};
+const NEED={a3:3,a4:4};
+const angKind=a=>Math.abs(a-90)<0.5?'قائمة':(a>179.5?'مستقيمة':(a<90?'حادة':'منفرجة'));
+function angle3(P1,V,P2){const ux=P1[0]-V[0],uy=P1[1]-V[1],wx=P2[0]-V[0],wy=P2[1]-V[1],lu=Math.hypot(ux,uy),lw=Math.hypot(wx,wy);if(!lu||!lw)return null;
+  const theta=Math.acos(Math.max(-1,Math.min(1,(ux*wx+uy*wy)/(lu*lw))))/R,cross=(V[0]-P1[0])*(P2[1]-V[1])-(V[1]-P1[1])*(P2[0]-V[0]);
+  return{theta,dev:180-theta,reflex:360-theta,side:Math.abs(cross)<1e-9?'':(cross>0?'يمين':'يسار')}}
+function angle4(A_,B,C_,D_){const d1=[B[0]-A_[0],B[1]-A_[1]],d2=[D_[0]-C_[0],D_[1]-C_[1]],l1=Math.hypot(...d1),l2=Math.hypot(...d2);if(!l1||!l2)return null;
+  const dir=Math.acos(Math.max(-1,Math.min(1,(d1[0]*d2[0]+d1[1]*d2[1])/(l1*l2))))/R,cross=d1[0]*d2[1]-d1[1]*d2[0],acute=Math.min(dir,180-dir);
+  return{dir,acute,obtuse:180-acute,side:Math.abs(cross)<1e-9?'':(cross>0?'يمين':'يسار')}}
+function lineX(A_,B,C_,D_){const x1=A_[0],y1=A_[1],x2=B[0],y2=B[1],x3=C_[0],y3=C_[1],x4=D_[0],y4=D_[1],den=(x1-x2)*(y3-y4)-(y1-y2)*(x3-x4);
+  if(Math.abs(den)<1e-9)return null;const t=((x1-x3)*(y3-y4)-(y1-y3)*(x3-x4))/den;return[x1+t*(x2-x1),y1+t*(y2-y1)]}
+// two rays from the crossing point whose angle is the acute or the obtuse one (to draw the arc)
+function rays4(A_,B,C_,D_,want){
+  const X=lineX(A_,B,C_,D_),a=angle4(A_,B,C_,D_);if(!X||!a)return null;
+  const unit=v=>{const l=Math.hypot(v[0],v[1])||1;return[v[0]/l,v[1]/l]},d1=unit([B[0]-A_[0],B[1]-A_[1]]),d2=unit([D_[0]-C_[0],D_[1]-C_[1]]);
+  const m1=[(A_[0]+B[0])/2-X[0],(A_[1]+B[1])/2-X[1]],m2=[(C_[0]+D_[0])/2-X[0],(C_[1]+D_[1])/2-X[1]];
+  let r1=(m1[0]*d1[0]+m1[1]*d1[1])>=0?d1:[-d1[0],-d1[1]],r2=(m2[0]*d2[0]+m2[1]*d2[1])>=0?d2:[-d2[0],-d2[1]];
+  const ang=()=>Math.acos(Math.max(-1,Math.min(1,r1[0]*r2[0]+r1[1]*r2[1])))/R,target=want==='acute'?a.acute:a.obtuse;
+  if(Math.abs(ang()-target)>0.5)r2=[-r2[0],-r2[1]];
+  return{X,r1,r2,value:target}}
+const dirT=(v,pos,neg)=>Math.abs(v)<1e-6?'':(v>0?pos:neg);
+T.angles={
+  mode:'pan',
+  modes(){return[['pan','تحريك'],['a3','زاوية 3 نقاط'],['a4','زاوية بين خطين']]},
+  extras(){return this.mode!=='pan'?[['undo','تراجع'],['clr','مسح الكل']]:[]},
+  hint(){return({pan:'بإصبع واحد حرّك الصورة، وبإصبعين كبّر وصغّر.',
+    a3:'3 نقاط: نقطة على الضلع الأول، ثم نقطة الزاوية (الرأس)، ثم نقطة على الضلع الثاني. بتطلع الزاوية الداخلية (حادة أو قائمة أو منفرجة).',a4:'خطين: نقطتين على الخط الأول، ثم نقطتين على الخط الثاني. بتطلع الحادة والمنفرجة، واختار اللي بدك تنعرض بالرسم.'})[this.mode]},
+  reset(){N.items=[];N.cur=[]},
+  tbx(k){if(k==='undo'){if(N.cur.length)N.cur.pop();else N.items.pop()}else if(k==='clr'){if((N.items.length||N.cur.length)&&confirm('تمسح كل القياسات؟')){N.items=[];N.cur=[]}}renderAll()},
+  tap(ix,iy){const t=this.mode;if(t==='pan')return;N.cur.push({x:ix,y:iy});if(N.cur.length===NEED[t]){N.items.push({id:N.idc++,t,pts:N.cur});N.cur=[]}renderPanel();draw()},
+  hit(cx,cy){return this.mode==='pan'?null:hitPts([].concat(...N.items.map(i=>i.pts),N.cur),cx,cy)},
+  drag(h,x,y){h.x=x;h.y=y},
+  draw(c,L){
+    const v=S.view;
+    N.items.concat(N.cur.length?[{t:this.mode,pts:N.cur,live:true}]:[]).forEach((it,i)=>{
+      const col=it.live?'#555555':COL[i%COL.length],P=it.pts.map(p=>[p.x,p.y]);c.lineWidth=2.5/v.s;c.strokeStyle=col;c.beginPath();
+      const arc=(X,r1,r2,rad)=>{const a1=Math.atan2(r1[1],r1[0]),a2=Math.atan2(r2[1],r2[0]);let d=a2-a1;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;c.lineWidth=2.5/v.s;c.strokeStyle=col;c.beginPath();c.arc(X[0],X[1],rad,a1,a1+d,d<0);c.stroke()};
+      if(it.t==='a3'){P.forEach((q,j)=>j?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.stroke();
+        if(!it.live){const a=angle3(P[0],P[1],P[2]);if(a){const V=P[1],u=(q)=>{const l=Math.hypot(q[0]-V[0],q[1]-V[1])||1;return[(q[0]-V[0])/l,(q[1]-V[1])/l]};arc(V,u(P[0]),u(P[2]),30/v.s);
+          L.push([V[0],V[1],a.theta.toFixed(1)+'° '+angKind(a.theta),col,-34])}}}
+      else{if(P.length>=2){c.moveTo(P[0][0],P[0][1]);c.lineTo(P[1][0],P[1][1])}if(P.length>=4){c.moveTo(P[2][0],P[2][1]);c.lineTo(P[3][0],P[3][1])}c.stroke();
+        if(!it.live&&P.length===4){const rr=rays4(...P,N.sel),a=angle4(...P);
+          if(rr){const X=rr.X;c.setLineDash([6/v.s,5/v.s]);c.lineWidth=1.5/v.s;c.beginPath();            // extend both lines to the crossing point
+            [[P[0],P[1]],[P[2],P[3]]].forEach(([p,q])=>{const far=Math.hypot(X[0]-p[0],X[1]-p[1])>Math.hypot(X[0]-q[0],X[1]-q[1])?q:p;c.moveTo(far[0],far[1]);c.lineTo(X[0],X[1])});c.stroke();c.setLineDash([]);
+            arc(X,rr.r1,rr.r2,34/v.s);L.push([X[0],X[1],rr.value.toFixed(1)+'° '+angKind(rr.value),col,-30])}
+          else if(a)L.push([(P[0][0]+P[1][0]+P[2][0]+P[3][0])/4,(P[0][1]+P[1][1]+P[2][1]+P[3][1])/4,'متوازيان',col,-14])}}
+      it.pts.forEach(p=>{c.beginPath();c.arc(p.x,p.y,8/v.s,0,7);c.fillStyle='#fff';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle=col;c.stroke()});
+    });
+  },
+  panel(){
+    if(!S.base)return noFileCard();
+    const seg='<div class="card"><b>الزاوية بين خطين: اللي تنعرض بالرسم</b><div class="seg">'+[['obtuse','المنفرجة'],['acute','الحادة']].map(x=>'<button data-a="anSel" data-v="'+x[0]+'" class="'+(N.sel===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div><div class="mut">الحادة والمنفرجة (متمّمتها لـ 180°) بيطلعوا دايماً بالأرقام تحت.</div></div>';
+    if(!N.items.length)return seg+'<div class="card warn">ما في زوايا بعد. اختار «زاوية 3 نقاط» (زاوية عند رأس) أو «زاوية بين خطين»، واضغط النقاط على الرسم. (لميلان خط واحد عن الأفقي استخدم تبويب «ميلان» واختار اليمين أو اليسار.)</div>';
+    return seg+N.items.map((it,i)=>{const col=COL[i%COL.length],P=it.pts.map(p=>[p.x,p.y]);
+      let h='<div class="card"><span class="sw" style="background:'+col+'"></span><b>'+(it.t==='a3'?'زاوية عند رأس':'زاوية بين خطين')+' '+(i+1)+'</b>';
+      if(it.t==='a3'){const a=angle3(P[0],P[1],P[2]);
+        h+=a?'<div class="big">'+iso(a.theta.toFixed(1)+'°')+'</div><div class="mut">الزاوية الداخلية عند الرأس: <b>'+angKind(a.theta)+'</b></div>'+
+          '<div class="kv"><span>من الجهة الثانية (انعكاسية)</span><b>'+iso(a.reflex.toFixed(1)+'°')+'</b></div>'+
+          '<div class="kv"><span>الانحراف عن الاستقامة</span><b>'+iso(a.dev.toFixed(1)+'°')+(a.side?' (لل'+a.side+')':'')+'</b></div>':'<div class="warn">نقطتين على نفس المكان.</div>'}
+      else{const a=angle4(...P);
+        h+=a?'<div class="big">'+iso((N.sel==='obtuse'?a.obtuse:a.acute).toFixed(1)+'°')+'</div><div class="mut">'+(N.sel==='obtuse'?'الزاوية المنفرجة':'الزاوية الحادة')+' بين الخطين</div>'+
+          '<div class="kv"><span>الحادة</span><b>'+iso(a.acute.toFixed(1)+'°')+'</b></div><div class="kv"><span>المنفرجة</span><b>'+iso(a.obtuse.toFixed(1)+'°')+'</b></div>'+
+          '<div class="kv"><span>بين اتجاهي A→B و C→D</span><b>'+iso(a.dir.toFixed(1)+'°')+(a.side?' (الثاني لل'+a.side+')':'')+'</b></div>':'<div class="warn">نقطتين على نفس المكان.</div>'}
+      return h+'<div class="acts"><button class="btn alt sm" data-a="itDel" data-id="'+it.id+'">حذف</button></div></div>'}).join('')+(N.cur.length?'<p class="mut">قيد الإضافة: '+N.cur.length+' من '+NEED[this.mode]+' نقاط.</p>':'');
+  }
+};
+
+// ================= TOOL: SLOPE (simple: draw a line, everything is automatic) =================
+const SL={items:[],active:null,idc:1,from:'auto'};
+function slopeInfo(a,b){ // plan axes: x right, y UP
+  const dx=b[0]-a[0],dy=-(b[1]-a[1]),len=Math.hypot(dx,dy),angH=Math.atan2(Math.abs(dy),Math.abs(dx))/R;
+  const up=dy>=0?1:-1,phiR=Math.atan2(Math.abs(dy),dx*up)/R;   // angle from the RIGHT-pointing horizontal to the line (0..180)
+  return{dx,dy,len,angH,angV:90-angH,phiR,slope:Math.abs(dx)<1e-9?null:Math.abs(dy)/Math.abs(dx)*100,inFt:Math.abs(dx)<1e-9?null:Math.abs(dy)/Math.abs(dx)*12,
+    ratio:Math.abs(dy)<1e-9?null:Math.abs(dx)/Math.abs(dy)}}
+const dirWord=(dx,dy)=>(Math.abs(dx)<1e-6&&Math.abs(dy)<1e-6)?'':(Math.abs(dx)<1e-6?'عامودي':(Math.abs(dy)<1e-6?'أفقي':(dy>0?'صاعد':'نازل')+(dx>0?' لليمين':' لليسار')));
+const slSegs=it=>{const P=it.pts.map(p=>[p.x,p.y]),o=[];for(let i=0;i<P.length-1;i++)o.push({i,a:P[i],b:P[i+1],inf:slopeInfo(P[i],P[i+1])});return o};
+// the angle shown: from the right horizontal, from the left horizontal, or the smaller one (auto)
+function slAngle(inf){const L=180-inf.phiR;return SL.from==='R'?inf.phiR:SL.from==='L'?L:Math.min(inf.phiR,L)}
+const slFromName=()=>SL.from==='R'?'اليمين':SL.from==='L'?'اليسار':'تلقائي (الأصغر)';
+T.slope={
+  mode:'pan',
+  modes(){return[['pan','تحريك'],['draw','رسم خط']]},
+  extras(){return this.mode==='draw'?[['finish','إنهاء الخط'],['undo','تراجع'],['clr','مسح الكل']]:[]},
+  hint(){return this.mode==='draw'?'اضغط نقطتين لخط واحد، أو أكثر لخط بعدة مقاطع. اسحب أي نقطة لتظبيطها. «إنهاء الخط» لتبدأ خط جديد.':'بإصبع واحد حرّك الصورة، وبإصبعين كبّر وصغّر.'},
+  reset(){SL.items=[];SL.active=null},
+  tbx(k){
+    if(k==='finish'){if(SL.active&&SL.active.pts.length<2)SL.items=SL.items.filter(x=>x!==SL.active);SL.active=null}
+    else if(k==='undo'){const l=SL.active||SL.items[SL.items.length-1];if(l){l.pts.pop();if(!l.pts.length){SL.items=SL.items.filter(x=>x!==l);if(SL.active===l)SL.active=null}}}
+    else if(k==='clr'){if(SL.items.length&&confirm('تمسح كل الخطوط؟')){SL.items=[];SL.active=null}}
+    renderAll()},
+  tap(ix,iy){if(this.mode!=='draw')return;const q=snapPt(ix,iy);if(!SL.active){SL.active={id:SL.idc++,pts:[]};SL.items.push(SL.active)}SL.active.pts.push({x:q[0],y:q[1]});renderPanel();draw()},
+  hit(cx,cy){return this.mode==='draw'?hitPts([].concat(...SL.items.map(i=>i.pts)),cx,cy):null},
+  drag(h,x,y){const q=snapPt(x,y);h.x=q[0];h.y=q[1]},
+  draw(c,L){
+    const v=S.view;
+    SL.items.forEach((it,i)=>{
+      const col=COL[i%COL.length],P=it.pts.map(p=>[p.x,p.y]),sg=slSegs(it);
+      if(P.length>=2){
+        if(P.length===2){c.setLineDash([6/v.s,5/v.s]);c.lineWidth=1.5/v.s;c.strokeStyle='#444';c.beginPath();c.moveTo(P[0][0],P[0][1]);c.lineTo(P[1][0],P[0][1]);c.lineTo(P[1][0],P[1][1]);c.stroke();c.setLineDash([])}
+        c.lineWidth=3/v.s;c.strokeStyle=col;c.beginPath();pathOn(c,P,false,false);c.stroke();
+        sg.forEach(s=>{
+          // arc at the lower end, between the chosen horizontal (right or left) and the line
+          const lowA=s.a[1]>=s.b[1],V=lowA?s.a:s.b,thU=s.inf.phiR,right=(SL.from==='R')||(SL.from==='auto'&&thU<=90),ref=right?0:180;
+          if(s.inf.len>1&&s.inf.angH>0.05){const rl=Math.min(Math.max(45/v.s,s.inf.len*0.4),s.inf.len);
+            c.setLineDash([5/v.s,4/v.s]);c.lineWidth=1.5/v.s;c.strokeStyle='#555';c.beginPath();c.moveTo(V[0],V[1]);c.lineTo(V[0]+rl*Math.cos(ref*R)*1,V[1]);c.stroke();c.setLineDash([]);
+            c.lineWidth=2/v.s;c.strokeStyle=col;c.beginPath();c.arc(V[0],V[1],Math.min(30/v.s,rl*0.8),-ref*R,-thU*R,thU>ref);c.stroke()}
+          L.push([(s.a[0]+s.b[0])/2,(s.a[1]+s.b[1])/2,slAngle(s.inf).toFixed(1)+'°'+(s.inf.slope!==null?' · '+s.inf.slope.toFixed(0)+'%':''),col,-14])});
+      }
+      it.pts.forEach((p,j)=>{c.beginPath();c.arc(p.x,p.y,8/v.s,0,7);c.fillStyle=(SL.active&&SL.active.id===it.id&&j===it.pts.length-1)?col:'#fff';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle=col;c.stroke();L.push([p.x,p.y,nameFor(j),null,0])});
+    });
+  },
+  panel(){
+    if(!S.base)return noFileCard();
+    const seg='<div class="card"><b>الزاوية تُقاس من</b><div class="seg">'+[['auto','تلقائي'],['R','اليمين'],['L','اليسار']].map(x=>'<button data-a="slFrom" data-f="'+x[0]+'" class="'+(SL.from===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div><div class="mut">اليمين: عن الأفق الأيمن. اليسار: عن الأفق الأيسر (متممة الأولى لـ 180°). تلقائي: الأصغر.</div></div>';
+    if(!SL.items.length)return seg+'<div class="card"><b>قياس ميلان الخط</b><p class="mut">اختار «رسم خط» وحط نقطتين (أو أكثر لخط بعدة مقاطع). كل شي بيطلع لحاله: الزاوية، والميل %، والزحزحة للتوقيع على الأرض.</p></div>';
+    let h=seg;
+    SL.items.forEach((it,i)=>{
+      const col=COL[i%COL.length],k=scaleP(it.pts),sg=slSegs(it);
+      h+='<div class="card"><span class="sw" style="background:'+col+'"></span><b>خط S'+(i+1)+'</b> <span class="mut">('+it.pts.length+' نقطة · المقياس: '+scaleNote(it.pts)+')</span>';
+      if(!sg.length){h+='<div class="mut">حط نقطة ثانية على الأقل.</div></div>';return}
+      h+='<table><thead><tr><th>المقطع</th><th>الطول</th><th>الزاوية</th><th>الميل</th></tr></thead><tbody>'+
+        sg.map(s=>'<tr><td><b>'+nameFor(s.i)+'→'+nameFor(s.i+1)+'</b></td><td>'+fK(s.inf.len,k)+'</td><td><b>'+iso(slAngle(s.inf).toFixed(1)+'°')+'</b></td><td>'+(s.inf.slope===null?'عامودي':iso(s.inf.slope.toFixed(1)+'%'))+'</td></tr>').join('')+'</tbody></table>';
+      h+='<details><summary>التفاصيل والتوقيع على الأرض</summary>'+sg.map(s=>{const n=s.inf;
+        return'<div style="margin-top:8px"><b>'+nameFor(s.i)+'→'+nameFor(s.i+1)+'</b> · '+dirWord(n.dx,n.dy)+
+          '<div class="mut">إحداثيات '+nameFor(s.i)+' ('+iso(coordShort(coordOf(s.a[0],s.a[1])))+') ← '+nameFor(s.i+1)+' ('+iso(coordShort(coordOf(s.b[0],s.b[1])))+')</div>'+
+          '<div class="kv"><span>الزاوية من اليمين / من اليسار</span><b>'+iso(n.phiR.toFixed(1)+'° / '+(180-n.phiR).toFixed(1)+'°')+'</b></div>'+
+          '<div class="kv"><span>ميلان عن الأفقي / العامودي</span><b>'+iso(n.angH.toFixed(2)+'° / '+n.angV.toFixed(2)+'°')+'</b></div>'+
+          '<div class="kv"><span>الميل</span><b>'+(n.slope===null?'عامودي':iso(n.slope.toFixed(1)+'% ≈ '+n.inFt.toFixed(2)+' إنش لكل قدم'))+'</b></div>'+
+          '<div class="kv"><span>زحزحة أفقية (ΔX) '+dirT(n.dx,'لليمين','لليسار')+'</span><b>'+fK(Math.abs(n.dx),k)+'</b></div>'+
+          '<div class="kv"><span>زحزحة عامودية (ΔY) '+dirT(n.dy,'لفوق','لتحت')+'</span><b>'+fK(Math.abs(n.dy),k)+'</b></div>'+
+          '<div class="mut">للتوقيع: امش <b>'+fK(Math.abs(n.dx),k)+'</b> أفقياً ثم <b>'+fK(Math.abs(n.dy),k)+'</b> عامودياً، أو قيس <b>'+fK(n.len,k)+'</b> بزاوية '+iso(n.angH.toFixed(1)+'°')+' عن الأفقي.</div></div>'}).join('')+'</details>';
+      h+='<div class="acts"><button class="btn alt sm" data-a="slDel" data-id="'+it.id+'">حذف الخط</button></div></div>'});
+    return h+'<button class="btn alt" data-a="slCopy">نسخ الأرقام</button>';
+  }
+};
+
+// ================= TOOL: MATERIALS + LOG =================
+const M={area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
+try{S.log=JSON.parse(localStorage.getItem('tkLog')||'[]');const d=localStorage.getItem('tkDen');if(d)M.den=parseFloat(d)||M.den}catch(e){S.log=[]}
+const saveLog=()=>{try{localStorage.setItem('tkLog',JSON.stringify(S.log))}catch(e){}};
+function addLog(name,sf,n){S.log.push({name,sf,n});saveLog()}
+function matsCalc(){
+  const A_=parseFloat(M.area),T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100,Bn=M.bind/100,BD=M.bden;
+  const litres=sf=>sf*T_/12*28.3168,bagsOf=sf=>Math.ceil(litres(sf)*D_*(1+W_)/B-1e-6);
+  let o='',pl='';
+  if(T_>0&&D_>0&&B>0){
+    if(A_>0){const kg=litres(A_)*D_,bind=kg*Bn*(1+W_),bl=bind/BD;
+      o=[['وزن المطاط المطلوب',kg.toFixed(0)+' كغ'],['عدد الأكياس ('+B+' كغ) مع الهدر','<b style="font-size:22px">'+bagsOf(A_)+' كيس</b>'],['الغراء (اختياري) مع الهدر',bind.toFixed(0)+' كغ ≈ '+(bl/3.785).toFixed(1)+' جالون']].map(r=>'<div><span>'+r[0]+'</span><b>'+r[1]+'</b></div>').join('')}
+    if(S.log.length){let tot=0;pl='<p class="mut" style="margin:10px 0 2px">الأكياس لكل بند بالسجل (كل بند بيتقرّب لكيس كامل):</p><table><tbody>'+S.log.map(l=>{const bg=bagsOf(l.sf);tot+=bg;return'<tr><td>'+l.name+'</td><td>'+l.sf.toFixed(1)+' sf</td><td><b>'+bg+' كيس</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td>المجموع</td><td></td><td><b>'+tot+' كيس</b></td></tr></tfoot></table>'}
+  }
+  const eo=$('#mOut'),el=$('#mLog');if(eo)eo.innerHTML=o;if(el)el.innerHTML=pl;
+  return{out:o,per:pl};
+}
+T.mats={
+  panel(){
+    const inp=(k,l,step)=>'<div><label>'+l+'</label><input type="number" step="'+(step||'any')+'" inputmode="decimal" value="'+(M[k]===''?'':M[k])+'" data-n="m" data-k="'+k+'"></div>';
+    return '<div class="card"><b>عدد الأكياس</b><div class="row">'+inp('area','المساحة (sf)')+inp('thk','سماكة الطبقة (إنش)')+'</div><div class="row">'+inp('bag','وزن الكيس (كغ)')+inp('waste','هدر %')+'</div>'+
+      '<div class="acts"><button class="btn alt sm" data-a="matSel">من القطع المحددة</button><button class="btn alt sm" data-a="matPoly">من مساحة الحدود</button><button class="btn alt sm" data-a="matLog">من مجموع السجل</button></div>'+
+      '<div class="out" id="mOut" style="margin-top:8px"></div><div id="mLog"></div>'+
+      '<details><summary>معايرة الكثافة من شغل سابق (الأدق)</summary><p class="mut">اكتب كم كيس استهلكت فعلياً على مساحة معروفة بنفس السماكة، فبتنحفظ الكثافة الفعلية.</p><div class="row"><div><label>أكياس مستهلكة</label><input type="number" id="cBags" inputmode="decimal"></div><div><label>المساحة (sf)</label><input type="number" id="cArea" step="any" inputmode="decimal"></div></div><button class="btn" data-a="denCal">احسب واعتمد</button><p class="mut" id="cMsg"></p></details>'+
+      '<details><summary>إعدادات متقدمة (الكثافة والغراء)</summary><div class="row">'+inp('den','كثافة المطاط (كغ/لتر)')+inp('bind','غراء % من وزن المطاط')+'</div><div class="row">'+inp('bden','كثافة الغراء (كغ/لتر)')+'<div></div></div><p class="warn">الكثافة ونسبة الغراء تختلف حسب المصنّع.</p></details></div>'+
+      '<div class="card"><b>السجل</b>'+(S.log.length?'<table><tbody>'+S.log.map((l,i)=>'<tr><td>'+l.name+'<br><span class="mut">'+l.n+' قطعة</span></td><td>'+sf2(l.sf)+'</td><td><button class="btn alt sm" data-a="logDel" data-i="'+i+'">حذف</button></td></tr>').join('')+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(S.log.reduce((a,l)=>a+l.sf,0))+'</td><td></td></tr></tfoot></table><div class="acts"><button class="btn alt sm" data-a="logCopy">نسخ</button><button class="btn alt sm" data-a="logClr">مسح السجل</button></div>':'<div class="warn">ما في نتائج محفوظة. احفظ مساحات من تبويب «مساحات».</div>')+'</div>';
+  }
+};
+function noFileCard(){return '<div class="card"><b>ابدأ بفتح ملف</b><p class="mut">اضغط «فتح ملف» فوق واختار PDF (أفضل، فيه قياسات) أو صورة.</p></div>'}
+
+// ================= actions (event delegation) =================
+const ACT={
+  menu(){$('#drawer').classList.toggle('open')},
+  tool(d){setTool(d.t)},
+  mode(d){T[tool].mode=d.m;if(tool==='lines'&&d.m==='coord'&&S.base&&!S.origin)centerOrigin();renderToolbar();renderPanel();draw()},
+  tbx(d){T[tool].tbx(d.k)},
+  fit(){fit()},
+  page(d){if(!S.buf||!S.isPdf)return;const p=Math.min(Math.max(1,S.page+(+d.d)),S.pages);if(p===S.page)return;S.page=p;loadPdf()},
+  fmt(d){S.fmt=d.f;document.querySelectorAll('#fmtSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===d.f));renderAll()},
+  calOn(){CAL.on=!CAL.on;CAL.pts=[];$('#calBox').style.display=CAL.on?'':'none';if(CAL.on)$('#drawer').classList.remove('open');renderToolbar();draw()},
+  calApply(){
+    if(CAL.pts.length<2){alert('اضغط على طرفي بُعد معروف بالرسم أول.');return}
+    const Lr=parseFloat($('#calLen').value);if(!(Lr>0)){alert('اكتب الطول بالقدم.');return}
+    const m=[(CAL.pts[0][0]+CAL.pts[1][0])/2,(CAL.pts[0][1]+CAL.pts[1][1])/2];setScaleManual(D(CAL.pts[0],CAL.pts[1])/Lr,m[0],m[1],'cal');
+    CAL.on=false;CAL.pts=[];$('#calBox').style.display='none';renderAll()},
+  clrRefs(){S.refs=[];if(!S.dims.length)S.pxFt=null;renderAll()},
+  pieceTap(d){const p=S.pieces[+d.i];if(p){p.sign=nextSign(p.sign);renderPanel();draw()}},
+  areaLog(){const{t,n}=totals();if(!n){alert('حدد قطع أول.');return}const nm=($('#aName')&&$('#aName').value.trim())||('مجموع '+(S.log.length+1));addLog(nm,t,n);renderPanel()},
+  areaMat(){const{t}=totals();if(t<=0){alert('حدد قطع أول.');return}M.area=t.toFixed(2);setTool('mats');matsCalc()},
+  manLogArea(){const nm=($('#aMName').value||'').trim()||('مساحة '+(S.log.length+1)),v=parseFloat($('#aMVal').value),u=parseFloat($('#aMU').value)||1;if(!(v>0)){alert('اكتب المساحة.');return}addLog(nm,v*u,1);$('#aMVal').value='';renderPanel()},
+  polyLog(){const r=polyResult();if(!r||r.noScale)return;addLog('مساحة حدود',r.sf,1);renderPanel()},
+  polyMat(){const r=polyResult();if(!r||r.noScale)return;M.area=r.sf.toFixed(1);setTool('mats');matsCalc()},
+  lnType(d){const l=Ln.lines.find(x=>x.id===+d.id);if(l){l.curved=!l.curved;if(Ln.active&&Ln.active.id===l.id)Ln.newCurved=l.curved}renderAll()},
+  lnSel(d){Ln.sel=+d.id;renderPanel();draw()},
+  lnDel(d){const id=+d.id;Ln.lines=Ln.lines.filter(x=>x.id!==id);if(Ln.active&&Ln.active.id===id)Ln.active=null;if(Ln.sel===id)Ln.sel=null;renderAll()},
+  lnRef(d){
+    const id=+d.id,l=Ln.lines.find(x=>x.id===id),sel=document.querySelector('[data-rs="'+id+'"]'),inp=document.querySelector('[data-rl="'+id+'"]');
+    const real=parseFloat(String(inp.value).replace(',','.'));if(!(real>0)){alert('اكتب المسافة الحقيقية بالقدم.');return}
+    const m=metrics(l),s=m.segs[+sel.value];if(!s||s.c<1e-6){alert('المقطع غير صالح.');return}
+    const a=m.P[s.from],b=m.P[s.to];setScaleManual(s.c/real,(a[0]+b[0])/2,(a[1]+b[1])/2,'line'+id);renderAll()},
+  lnCopy(){
+    const t=Ln.lines.map((l,i)=>{const m=metrics(l),k=scaleP(l.pts);if(m.P.length<2)return '';
+      return 'L'+(i+1)+' ('+(m.curved?'منحني':'مستقيم')+'): الطول '+fK(m.total,k)+' | المستقيم '+fK(m.chord,k)+' | أقصى ابتعاد '+fK(m.maxDev,k)+'\n'+
+        m.segs.map(s=>'  '+nameFor(s.from)+'→'+nameFor(s.to)+': '+fK(s.L,k)+' (مستقيم '+fK(s.c,k)+', انحناء '+fK(s.sag,k)+(isFinite(s.R)?', نصف قطر '+fK(s.R,k):'')+')').join('\n')}).filter(Boolean).join('\n\n');
+    copyText(t)},
+  manStep(d){const m=C.man.find(c=>c.id===+d.id);if(m){m.rFt=Math.max(0.1,m.rFt+(+d.d));C.lastR=m.rFt}renderPanel();draw()},
+  manPick(d){C.pickR=+d.id;T.circles.mode='center';renderToolbar()},
+  manSame(d){const m=C.man.find(c=>c.id===+d.id);if(m){C.man.push({id:C.idc++,x:m.x,y:m.y,rFt:m.rFt+2});C.lastR=m.rFt+2}renderPanel();draw()},
+  pcDel(d){C.pc=C.pc.filter(x=>x.id!==+d.id);renderPanel();draw()},
+  manDel(d){C.man=C.man.filter(c=>c.id!==+d.id);renderPanel();draw()},
+  ringToMan(d){const r=C.rings.find(x=>x.id===+d.id);if(!r||!r.fit)return;const k=scaleAt(r.fit.a,r.fit.b);if(!k){alert('حدد المقياس أول (⋯).');return}
+    C.man.push({id:C.idc++,x:r.fit.a,y:r.fit.b,rFt:r.fit.r/k});T.circles.mode='center';renderAll()},
+  ringAct(d){C.cur=Math.max(0,C.rings.findIndex(r=>r.id===+d.id));renderPanel();draw()},
+  ringDel(d){C.rings=C.rings.filter(r=>r.id!==+d.id);C.cur=Math.min(C.cur,Math.max(0,C.rings.length-1));computeRings();renderPanel();draw()},
+  lmDel(d){C.lms=C.lms.filter(l=>l.id!==+d.id);renderPanel();draw()},
+  anSel(d){N.sel=d.v;renderAll()},
+  itDel(d){N.items=N.items.filter(i=>i.id!==+d.id);renderPanel();draw()},
+  slFrom(d){SL.from=d.f;renderAll()},
+  orgReset(){centerOrigin();renderAll()},
+  fmtToggle(){ACT.fmt({f:S.fmt==='dec'?'ftin':'dec'})},
+  snap(){S.snap=!S.snap;const ck=document.querySelector('[data-k="snap"]');if(ck)ck.checked=S.snap;renderAll()},
+  prDel(d){Ln.probes=Ln.probes.filter(p=>p.id!==+d.id);renderAll()},
+  prCopy(){copyText(Ln.probes.map(p=>{const c=coordOf(p.x,p.y);return p.name+': X='+cX(c)+' ; Y='+cY(c)}).join('\n').replace(/[\u2066\u2069]/g,''))},
+  slDel(d){const id=+d.id;SL.items=SL.items.filter(x=>x.id!==id);if(SL.active&&SL.active.id===id)SL.active=null;renderAll()},
+  slCopy(){const t=SL.items.map((it,i)=>{const k=scaleP(it.pts);return slSegs(it).map(s=>'S'+(i+1)+' '+nameFor(s.i)+'→'+nameFor(s.i+1)+': الطول '+fK(s.inf.len,k)+' | زاوية '+slAngle(s.inf).toFixed(1)+'° (من '+slFromName()+') | ميل '+(s.inf.slope===null?'عامودي':s.inf.slope.toFixed(1)+'%')+' | ΔX '+fK(Math.abs(s.inf.dx),k)+' | ΔY '+fK(Math.abs(s.inf.dy),k)).join('\n')}).join('\n');copyText(t)},
+  matSel(){const{t}=totals();if(t<=0){alert('حدد قطع بتبويب «مساحات» أول.');return}M.area=t.toFixed(2);renderPanel();matsCalc()},
+  matPoly(){const r=polyResult();if(!r||r.noScale){alert('سكّر شكل بتبويب «مساحات» وحدد المقياس أول.');return}M.area=r.sf.toFixed(1);renderPanel();matsCalc()},
+  matLog(){if(!S.log.length){alert('السجل فاضي.');return}M.area=S.log.reduce((a,l)=>a+l.sf,0).toFixed(2);renderPanel();matsCalc()},
+  denCal(){const n=+$('#cBags').value,A_=+$('#cArea').value;if(!(n>0&&A_>0&&M.thk>0&&M.bag>0)){alert('اكتب عدد الأكياس والمساحة، وتأكد من السماكة ووزن الكيس.');return}
+    M.den=n*M.bag/(A_*M.thk/12*28.3168);try{localStorage.setItem('tkDen',M.den.toFixed(5))}catch(e){}$('#cMsg').textContent='الكثافة الفعلية: '+M.den.toFixed(3)+' كغ/لتر. انحفظت واتطبقت.';matsCalc()},
+  logDel(d){S.log.splice(+d.i,1);saveLog();renderPanel();matsCalc()},
+  logClr(){if(confirm('تمسح كل السجل؟')){S.log=[];saveLog();renderPanel();matsCalc()}},
+  logCopy(){copyText(S.log.map(l=>l.name+': '+l.sf.toFixed(2)+' sf').join('\n')+'\nالمجموع: '+S.log.reduce((a,l)=>a+l.sf,0).toFixed(2)+' sf')}
+};
+function copyText(t){if(!t){alert('ما في شي للنسخ.');return}t=cmText(t).replace(/ · ([\d.]+ cm)/g,' ($1)');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert('اننسخ.'),()=>prompt('انسخ النص:',t))}
+const CHG={
+  opt(v,d,t){S[d.k]=t.checked;if(d.k==='showAnn'){S.hi=null;scheduleHi()}if(d.k==='cm'){renderAll();return}draw()},
+  page(v){if(!S.buf||!S.isPdf){alert('افتح ملف PDF أول.');return}const p=Math.max(1,Math.min(S.pages||1,parseInt(v)||1));$('#pageIn').value=p;if(p===S.page&&S.base)return;S.page=p;loadPdf()},
+  spacing(v){Ln.spacing=v;renderPanel()},
+  manR(v,d){const m=C.man.find(c=>c.id===+d.id),x=parseFloat(v);if(m&&x>0){m.rFt=x;C.lastR=x}renderPanel();draw()}
+};
+const INP={m(v,d){M[d.k]=d.k==='area'?v:(parseFloat(v)||0);matsCalc()}};
+document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-a]');if(!t)return;const f=ACT[t.dataset.a];if(f)f(t.dataset,t,e)});
+document.addEventListener('change',e=>{const t=e.target.closest&&e.target.closest('[data-c]');if(!t)return;const f=CHG[t.dataset.c];if(f)f(t.value,t.dataset,t)});
+document.addEventListener('input',e=>{const t=e.target.closest&&e.target.closest('[data-n]');if(!t)return;const f=INP[t.dataset.n];if(f)f(t.value,t.dataset,t)});
+$('#drawer').addEventListener('click',e=>{if(e.target===$('#drawer'))ACT.menu()});
+
+// ================= init =================
+Object.keys(T).forEach(k=>T[k].reset&&T[k].reset());
+renderAll();resize();matsCalc();
+</script>
+<script>
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+</body>
+</html>
