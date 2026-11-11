@@ -131,6 +131,7 @@ nav#tabs button.on{background:#ffffff22;color:#fff;font-weight:700}
   <label class="ck"><input type="checkbox" data-c="opt" data-k="showOv"> رسم قياسات الـ PDF بواسطة البرنامج</label>
   <label class="ck"><input type="checkbox" data-c="opt" data-k="showLbl" checked> أرقام المساحات على القطع</label>
   <label class="ck"><input type="checkbox" data-c="opt" data-k="showOutl" checked> حدود قطع الـ PDF</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="snapLines" checked> التقاط على خطوط الرسم نفسها (مش بس قياسات الـ PDF)</label>
   <label class="ck"><input type="checkbox" data-c="opt" data-k="snap"> التقاط نقاطي على رؤوس مضلعات الـ PDF</label>
   <label>وحدة الطول</label>
   <div class="seg" id="fmtSeg"><button data-a="fmt" data-f="dec" class="on">قدم عشري</button><button data-a="fmt" data-f="ftin">قدم-إنش</button></div>
@@ -154,7 +155,7 @@ const norm=a=>((a%360)+360)%360;
 const S={base:null,baseAnn:null,px:null,W:0,H:0,view:{s:1,x:0,y:0},dpr:window.devicePixelRatio||1,
   pxFt:null,refs:[],dims:[],polys:[],ann:[],pieces:[],spread:null,err:null,diag:'',plabels:[],kappa:1,usePrinted:false,pxPerPt:1,autoPage:false,buf:null,pdfPage:null,origin:null,ang:0,hi:null,hiTimer:0,hiTok:0,hiTask:null,
   file:null,name:'',page:1,pages:0,isPdf:false,
-  fmt:'dec',cm:true,showAnn:true,showOv:false,showLbl:true,showOutl:true,snap:false,log:[]};
+  fmt:'dec',cm:true,snapLines:true,showAnn:true,showOv:false,showLbl:true,showOutl:true,snap:false,log:[]};
 const CAL={on:false,pts:[]};
 let tool='areas',ptrs=new Map(),tapStart=null,pinch=null,dragH=null,raf=0;
 
@@ -306,8 +307,42 @@ window.addEventListener('resize',resize);
 function fit(){if(!S.W)return;const r=wrap.getBoundingClientRect();const s=Math.min(r.width/S.W,r.height/S.H);S.view={s,x:(r.width-S.W*s)/2,y:(r.height-S.H*s)/2};viewChanged()}
 const toImg=(cx,cy)=>{const r=cv.getBoundingClientRect();return[(cx-r.left-S.view.x)/S.view.s,(cy-r.top-S.view.y)/S.view.s]};
 const toScr=(cx,cy)=>{const r=cv.getBoundingClientRect();return[r.left+S.view.x+cx*S.view.s,r.top+S.view.y+cy*S.view.s]};
+// nearest drawn line in a small image window. A line pixel is darker than the pixels on BOTH sides of it (a thin dark ridge),
+// so the inside or the border of a coloured fill is not a line; small blobs (hatch dots, specks) are ignored.
+function inkSnap(data,w,h,cx,cy,rad){
+  const n=w*h,lum=new Float32Array(n);for(let i=0,j=0;i<n;i++,j+=4)lum[i]=0.299*data[j]+0.587*data[j+1]+0.114*data[j+2];
+  const rid=new Float32Array(n),dirs=[[1,0],[0,1],[1,1],[1,-1]],ds=[2,4,7,11];let mx=0;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x,L0=lum[i];let best=0;
+    for(const[dx,dy]of dirs)for(const d of ds){const x1=x-dx*d,y1=y-dy*d,x2=x+dx*d,y2=y+dy*d;if(x1<0||y1<0||x2<0||y2<0||x1>=w||y1>=h||x2>=w||y2>=h)continue;
+      const r=Math.min(lum[y1*w+x1],lum[y2*w+x2])-L0;if(r>best)best=r}
+    rid[i]=best;if(best>mx)mx=best}
+  if(mx<30)return null;const th=Math.max(30,mx*0.4);
+  const lab=new Int32Array(n).fill(-1),size=[];                                        // connected strokes
+  for(let i=0;i<n;i++){if(rid[i]<th||lab[i]>=0)continue;const id=size.length;let c=0;const st=[i];lab[i]=id;
+    while(st.length){const p=st.pop();c++;const x=p%w,y=(p-x)/w;for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const xx=x+dx,yy=y+dy;if(xx<0||yy<0||xx>=w||yy>=h)continue;const q=yy*w+xx;if(lab[q]<0&&rid[q]>=th){lab[q]=id;st.push(q)}}}
+    size.push(c)}
+  let bi=-1,bd=rad*rad+1e-6;
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=y*w+x;if(lab[i]<0||size[lab[i]]<8)continue;const d=(x-cx)**2+(y-cy)**2;if(d<bd){bd=d;bi=i}}
+  if(bi<0)return null;
+  const bx=bi%w,by=(bi-bx)/w,id=lab[bi];let sw=0,sx=0,sy=0;                           // ridge-weighted centre around the hit
+  for(let y=Math.max(0,by-2);y<=Math.min(h-1,by+2);y++)for(let x=Math.max(0,bx-2);x<=Math.min(w-1,bx+2);x++){const i=y*w+x;if(lab[i]===id){sw+=rid[i];sx+=rid[i]*x;sy+=rid[i]*y}}
+  return sw?[sx/sw,sy/sw]:[bx,by];
+}
+function lineSnapWorld(wx,wy){
+  const v=S.view;let cvs,scl,ox,oy;
+  if(S.hi&&wx>=S.hi.x&&wy>=S.hi.y&&wx<=S.hi.x+S.hi.w&&wy<=S.hi.y+S.hi.h){cvs=S.hi.cv;scl=S.hi.cv.width/S.hi.w;ox=S.hi.x;oy=S.hi.y}
+  else{cvs=(S.showAnn&&S.baseAnn)?S.baseAnn:S.base;scl=1;ox=0;oy=0}
+  if(!cvs||!cvs.getContext)return null;
+  const rS=Math.min(40,Math.max(3,Math.round(12/v.s*scl))),px0=(wx-ox)*scl,py0=(wy-oy)*scl;
+  const x0=Math.max(0,Math.floor(px0-rS)),y0=Math.max(0,Math.floor(py0-rS)),x1=Math.min(cvs.width,Math.ceil(px0+rS+1)),y1=Math.min(cvs.height,Math.ceil(py0+rS+1));
+  if(x1-x0<3||y1-y0<3)return null;
+  let d;try{d=cvs.getContext('2d').getImageData(x0,y0,x1-x0,y1-y0)}catch(e){return null}
+  const r=inkSnap(d.data,x1-x0,y1-y0,px0-x0,py0-y0,rS);if(!r)return null;
+  return[ox+(x0+r[0]+0.5)/scl,oy+(y0+r[1]+0.5)/scl];
+}
 function snapPt(x,y){
-  if(!S.snap||(!S.polys.length&&!S.dims.length))return[x,y];
+  if(!S.snap)return[x,y];
+  if(!S.polys.length&&!S.dims.length)return(S.snapLines&&lineSnapWorld(x,y))||[x,y];
   const rad=14/S.view.s,near=8/S.view.s;let V=null,dv=rad,E=null,de=rad;
   const tryV=q=>{const d=Math.hypot(q[0]-x,q[1]-y);if(d<dv){dv=d;V=[q[0],q[1]]}};
   S.dims.forEach(d=>{if(d.p0&&(Math.abs(d.p0[0]-d.p1[0])<1.5||Math.abs(d.p0[1]-d.p1[1])<1.5)){tryV(d.p0);tryV(d.p1)}});   // ends of horizontal/vertical dimensions are exact
@@ -317,7 +352,8 @@ function snapPt(x,y){
       const qx=a[0]+t*vx,qy=a[1]+t*vy,d=Math.hypot(qx-x,qy-y);if(d<de){de=d;E=[qx,qy]}}});
   if(V&&dv<=near)return V;           // a corner / dimension end very close wins
   if(E)return E;                     // otherwise the nearest point on an outline
-  return V||[x,y]}
+  if(V)return V;
+  return(S.snapLines&&lineSnapWorld(x,y))||[x,y]}   // otherwise the nearest drawn line of the plan
 function wantSnap(){
   if(!S.snap)return false;if(CAL.on)return true;const m=T[tool].mode;
   if(tool==='lines')return m==='draw'||m==='coord';if(tool==='slope')return m==='draw';if(tool==='angles')return m==='a3'||m==='a4';
@@ -350,7 +386,7 @@ function hitPts(arr,cx,cy,rad=26){let best=null,bd=rad;arr.forEach(p=>{const[sx,
 function later(){if(raf)return;raf=1;(window.requestAnimationFrame||setTimeout)(()=>{raf=0;renderPanel();draw()})}
 
 // ================= crisp PDF: re-render the visible part at screen resolution =================
-function viewChanged(){draw();scheduleHi()}
+function viewChanged(){draw();scheduleHi();updPrec()}
 function scheduleHi(){if(!S.pdfPage)return;clearTimeout(S.hiTimer);S.hiTimer=setTimeout(hiRender,220)}
 async function hiRender(){
   const pg=S.pdfPage;if(!pg||!S.base)return;
@@ -470,10 +506,16 @@ function renderFileBar(){
   let h='<span class="grow">'+S.name+'</span>';
   if(S.isPdf&&S.pages>1)h+='<button class="chip" data-a="page" data-d="1">◀</button><span>'+S.page+' / '+S.pages+'</span><button class="chip" data-a="page" data-d="-1">▶</button>';
   h+='<button class="chip" data-a="fmtToggle">'+(S.fmt==='dec'?'الوحدة: ft':'الوحدة: ft-in')+'</button>';
-  if(S.polys.length||S.dims.length)h+='<button class="chip" data-a="snap">'+(S.snap?'التقاط ✓':'التقاط ✗')+'</button>';
+  h+='<button class="chip" id="precChip" data-a="precInfo"></button>';
+  if(S.isPdf)h+='<button class="chip" data-a="snap">'+(S.snap?'التقاط ✓':'التقاط ✗')+'</button>';
   const k=S.pxFt;h+='<button class="chip'+(k?'':' warn')+'" data-a="menu">'+(k?'المقياس ✓':'حدد المقياس')+(S.spread&&S.spread>0.05?' ⚠ مقاييس متعددة':'')+'</button>';
-  fb.innerHTML=h;
+  fb.innerHTML=h;updPrec();
 }
+function precTxt(){ // real size of one screen pixel at the current zoom
+  if(!S.base)return null;const r=wrap.getBoundingClientRect(),c=toImg(r.left+r.width/2,r.top+r.height/2),k=scaleAt(c[0],c[1]);if(!k)return null;
+  const cm=30.48/(S.view.s*k);return{cm,txt:cm<1?(cm*10).toFixed(0)+' mm':cm.toFixed(1)+' cm'}}
+function updPrec(){const el=document.querySelector('#precChip');if(!el)return;const p=precTxt();if(!p){el.style.display='none';return}
+  el.style.display='';el.textContent='دقة البكسل ≈ '+p.txt;el.classList.toggle('warn',p.cm>2)}
 function renderScaleBox(){
   const el=$('#scaleBox');if(!el)return;
   if(!S.pxFt&&!S.refs.length&&!S.plabels.length){el.textContent='غير محدد. إذا الملف PDF فيه قياسات بيتحدد لحاله، وإلا استخدم المعايرة اليدوية تحت.';return}
@@ -556,7 +598,7 @@ async function loadPdf(){
     S.dims=r.dims;S.polys=r.polys;S.ann=r.ann;S.pxFt=r.pxFt;S.err=r.err;S.spread=r.spread;calibratePrinted();
     if(!S.pxFt&&S.plabels.length){S.pxFt=S.pxPerPt*864/S.plabels[0].N;S.usePrinted=true}
     S.pieces=r.polys;S.pieces.forEach(pieceInfo);S.pieces.sort((a,b)=>b.sf-a.sf);
-    S.snap=S.polys.length>0||S.dims.length>0;{const ck2=document.querySelector('[data-k="snap"]');if(ck2)ck2.checked=S.snap}
+    S.snap=true;{const ck2=document.querySelector('[data-k="snap"]');if(ck2)ck2.checked=S.snap}
     S.showOv=annots.length>0&&(!withAnn||diffRatio(cn,cn2)<0.0004);
     const ck=document.querySelector('[data-k="showOv"]');if(ck)ck.checked=S.showOv;
     let t=autoMsg+'الصفحة '+S.page+' من '+S.pages+'. ';
@@ -763,6 +805,15 @@ T.lines={
   }
 };
 const COL=['#1F6FEB','#E0642A','#14B860','#B04BE0','#E0B400','#E5395A'];
+function nearDim(a,b){ // a horizontal/vertical PDF dimension running parallel to the segment a-b with about the same length
+  const L=D(a,b);if(L<5)return null;const u=[(b[0]-a[0])/L,(b[1]-a[1])/L];let best=null,bs=-1e9;
+  S.dims.forEach(d=>{if(!d.p0)return;if(!(Math.abs(d.p0[0]-d.p1[0])<1.5||Math.abs(d.p0[1]-d.p1[1])<1.5))return;const dl=D(d.p0,d.p1);if(dl<5)return;
+    const ud=[(d.p1[0]-d.p0[0])/dl,(d.p1[1]-d.p0[1])/dl];if(Math.abs(u[0]*ud[0]+u[1]*ud[1])<Math.cos(5*R))return;
+    const rr=dl/L;if(rr<0.75||rr>1.33)return;
+    const pr=p=>(p[0]-a[0])*u[0]+(p[1]-a[1])*u[1],s0=Math.min(pr(d.p0),pr(d.p1)),s1=Math.max(pr(d.p0),pr(d.p1));
+    const ov=Math.max(0,Math.min(L,s1)-Math.max(0,s0))/Math.max(L,s1-s0),off=Math.abs((d.mid[0]-a[0])*u[1]-(d.mid[1]-a[1])*u[0]);
+    if(ov<0.6||off>1.5*L)return;const sc=ov-off/(3*L);if(sc>bs){bs=sc;best={d,s0,s1,u}}});
+  return best}
 function coordCard(){
   let h='<div class="card"><b>الإحداثيات</b> <span class="mut">(X لليمين، Y لفوق، من نقطة الأصل)</span>'+
     '<div class="status" style="margin-top:6px">نقطة الأصل: '+(S.origin?'<b>مكانها بالرسم</b> <button class="btn alt sm" data-a="orgReset">رجّع المحاور (أفقي/عامودي)</button>':'زاوية الصفحة اليسرى السفلى.')+(S.ang?'<br>المحور X مائل <b>'+iso(S.ang.toFixed(1)+'°')+'</b> عن أفقي الصفحة (مظبوط على خط الحدود).':'')+'<div class="mut">حرّك المحاور بإيدك: اسحب <b>الدائرة الخضرا</b> (الأصل) بحرية، أو <b>أي محور</b> وبيتحرك بخط مستقيم عمودي عليه، أو علامة <b>X/Y الأرجوانية</b> على محورها لتحريك النقطة بخط مستقيم. وزر «محاذاة مع خط الحدود» بيخلي المحور X موازي لحدود الملعب (اضغط نقطتين عليها).</div></div>';
@@ -790,6 +841,9 @@ function lineCard(l,i){
     h+='</tr>'});
   h+='</tbody></table>';
   if(m.curved)h+=layoutBlock(m,k);
+  if(l.pts.length===2&&!m.curved){const nd=nearDim(m.P[0],m.P[1]);if(nd&&k){const diff=(m.total/k-nd.d.ft)*30.48;
+    h+='<div class="kv"><span>بُعد مكتوب بالـ PDF قريب: <b>'+nd.d.txt+'</b></span><b>'+fFt(nd.d.ft)+'</b></div><div class="kv"><span>الفرق عن قياسك</span><b>'+iso((diff>0?'+':'')+diff.toFixed(1)+' cm')+'</b></div>'+
+      (Math.abs(diff)>0.5?'<div class="acts"><button class="btn alt sm" data-a="lnFitDim" data-id="'+l.id+'">اضبط الخط على هالبُعد</button></div>':'<div class="mut">✓ مطابق للبُعد المكتوب.</div>')}}
   h+='<details><summary>إحداثيات النقاط (X, Y)</summary><table><thead><tr><th>النقطة</th><th>X</th><th>Y</th></tr></thead><tbody>'+l.pts.map((p,j)=>{const c=coordOf(p.x,p.y);return'<tr><td><b>'+nameFor(j)+'</b>'+(c.warn?' ⚠':'')+'</td><td>'+cX(c)+'</td><td>'+cY(c)+'</td></tr>'}).join('')+'</tbody></table><div class="mut">من نقطة الأصل: '+(S.origin?'اللي حددتها بالرسم':'زاوية الصفحة اليسرى السفلى')+'. لتغييرها: «إحداثيات نقطة» ← «تحديد نقطة الأصل».</div></details>';
   h+='<details><summary>ضبط المقياس من مسافة معروفة</summary><div class="mut">اكتب المسافة المستقيمة الحقيقية بين نقطتين من هالخط (مقاسة بالشريط).</div><div class="row2"><select data-rs="'+l.id+'">'+m.segs.map(s=>'<option value="'+s.from+'">'+nameFor(s.from)+'→'+nameFor(s.to)+'</option>').join('')+'</select><input type="number" step="any" inputmode="decimal" placeholder="ft" data-rl="'+l.id+'"><button class="btn sm" data-a="lnRef" data-id="'+l.id+'">اعتمد</button></div></details>';
   h+='<div class="acts"><button class="btn alt sm" data-a="lnType" data-id="'+l.id+'">'+(l.curved?'خليه مستقيم':'خليه منحني')+'</button><button class="btn alt sm" data-a="lnSel" data-id="'+l.id+'">تحديد</button><button class="btn alt sm" data-a="lnDel" data-id="'+l.id+'">حذف</button></div></div>';
@@ -1110,6 +1164,9 @@ const ACT={
   polyLog(){const r=polyResult();if(!r||r.noScale)return;addLog('مساحة حدود',r.sf,1);renderPanel()},
   polyMat(){const r=polyResult();if(!r||r.noScale)return;M.area=r.sf.toFixed(1);setTool('mats');matsCalc()},
   lnType(d){const l=Ln.lines.find(x=>x.id===+d.id);if(l){l.curved=!l.curved;if(Ln.active&&Ln.active.id===l.id)Ln.newCurved=l.curved}renderAll()},
+  lnFitDim(d){const l=Ln.lines.find(x=>x.id===+d.id);if(!l||l.pts.length!==2)return;const a=[l.pts[0].x,l.pts[0].y],b=[l.pts[1].x,l.pts[1].y],nd=nearDim(a,b);if(!nd)return;
+    l.pts[0].x=a[0]+nd.u[0]*nd.s0;l.pts[0].y=a[1]+nd.u[1]*nd.s0;l.pts[1].x=a[0]+nd.u[0]*nd.s1;l.pts[1].y=a[1]+nd.u[1]*nd.s1;renderAll()},
+  precInfo(){const p=precTxt();alert(p?('بهالتكبير كل بكسل على الشاشة ≈ '+p.txt+' بالواقع.\nإذا إصبعك أو النقطة زاحت بكسل واحد، القياس بيتغير بهالمقدار.\nكبّر الصورة لحد ما يصير الرقم أقل من 1 cm، واستعمل العدسة والالتقاط.'):'حدد المقياس أول.')},
   lnSel(d){Ln.sel=+d.id;renderPanel();draw()},
   lnDel(d){const id=+d.id;Ln.lines=Ln.lines.filter(x=>x.id!==id);if(Ln.active&&Ln.active.id===id)Ln.active=null;if(Ln.sel===id)Ln.sel=null;renderAll()},
   lnRef(d){

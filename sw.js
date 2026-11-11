@@ -1,5 +1,5 @@
 // offline cache for the app shell + pdf.js (cached the first time a PDF is opened online)
-const CACHE='ptk-v3';
+const CACHE='ptk-v4';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const CDN=/^https:\/\/(cdnjs\.cloudflare\.com|cdn\.jsdelivr\.net|unpkg\.com)\//;
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).then(()=>self.skipWaiting()))});
