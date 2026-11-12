@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow,noarchive">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1F2A44">
 <meta name="mobile-web-app-capable" content="yes">
@@ -1227,6 +1228,7 @@ renderAll();resize();matsCalc();
 </script>
 <script>
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});   // ask the phone not to clear the saved copy
 </script>
 </body>
 </html>
