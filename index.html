@@ -18,7 +18,23 @@
 html,body{margin:0}
 body{background:var(--bg);color:var(--ink);font-family:Tajawal,"Noto Sans Arabic","Segoe UI",system-ui,sans-serif;font-size:16px;line-height:1.5;padding-bottom:70px}
 header{background:var(--navy);color:#fff;padding:8px 10px;display:flex;align-items:center;gap:8px}
-header h1{margin:0;font-size:17px;font-weight:700;flex:1}
+header h1{margin:0;font-size:17px;font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtn[disabled]{opacity:.35}
+.btn.big{min-height:54px;font-size:18px;display:flex;align-items:center;justify-content:center}
+#sheet{position:fixed;inset:0;z-index:60;display:none;background:#0008}
+#sheet.open{display:flex;align-items:flex-end}
+#sheet .sh{background:var(--bg);width:100%;max-height:88vh;overflow:auto;border-radius:16px 16px 0 0;padding:14px 14px 24px}
+#sheet .dr-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#1B2233EE;color:#fff;padding:10px 16px;border-radius:12px;font-size:15px;z-index:70;display:none;max-width:90vw;text-align:center}
+input.nm{width:100%;margin:6px 0 2px;padding:8px 10px;border:1px dashed #B9C0B4;border-radius:8px;font:inherit;font-size:14px;background:#fff}
+body:not(.alltabs) nav#tabs button.adv{display:none}
+body.alltabs #moreBtn{display:none}
+body.field #panel{font-size:17px}
+body.field .big{font-size:34px}
+body.field .kv{font-size:16px}
+body.field #hint{font-size:15px}
+.ok{color:#0B8457;font-weight:700}
+.bad{color:#B4530A;font-weight:700}
 .hbtn{min-height:40px;padding:0 12px;border-radius:10px;border:1.5px solid #ffffff55;background:#ffffff18;color:#fff;font:inherit;font-size:14px;display:flex;align-items:center;cursor:pointer}
 #fileBar{background:#fff;border-bottom:1px solid var(--line);padding:6px 10px;font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 #fileBar .grow{flex:1;min-width:120px}
@@ -81,6 +97,8 @@ nav#tabs button.on{background:#ffffff22;color:#fff;font-weight:700}
 <header>
   <button class="hbtn" data-a="menu" aria-label="القائمة">⋯</button>
   <h1>أدوات المخطط</h1>
+  <button class="hbtn" data-a="undo" id="bUndo" aria-label="تراجع" disabled>↶</button>
+  <button class="hbtn" data-a="redo" id="bRedo" aria-label="إعادة" disabled>↷</button>
   <label class="hbtn" for="file">فتح ملف</label>
   <input type="file" id="file" class="file-in" accept="application/pdf,.pdf,image/*">
 </header>
@@ -102,14 +120,21 @@ nav#tabs button.on{background:#ffffff22;color:#fff;font-weight:700}
 <nav id="tabs">
   <button data-a="tool" data-t="areas"><span class="ic">▦</span>مساحات</button>
   <button data-a="tool" data-t="lines"><span class="ic">〰</span>خطوط</button>
-  <button data-a="tool" data-t="circles"><span class="ic">◎</span>دوائر</button>
-  <button data-a="tool" data-t="angles"><span class="ic">∠</span>زوايا</button>
-  <button data-a="tool" data-t="slope"><span class="ic">◢</span>ميلان</button>
+  <button class="adv" data-a="tool" data-t="circles"><span class="ic">◎</span>دوائر</button>
+  <button class="adv" data-a="tool" data-t="angles"><span class="ic">∠</span>زوايا</button>
+  <button class="adv" data-a="tool" data-t="slope"><span class="ic">◢</span>ميلان</button>
   <button data-a="tool" data-t="mats"><span class="ic">▤</span>مواد</button>
+  <button data-a="more" id="moreBtn"><span class="ic">⋯</span><span id="moreLbl">المزيد</span></button>
 </nav>
 
 <div id="drawer"><div class="dr">
   <div class="dr-h"><b>الإعدادات</b><button class="hbtn" style="background:#fff;color:#1B2233;border-color:#CBD0C8" data-a="menu">إغلاق</button></div>
+
+  <h3>الشغل</h3>
+  <button class="btn" data-a="projects">🗂 مشاريعي</button>
+  <button class="btn alt" data-a="report">📄 تقرير (صورة ونص)</button>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="field"> وضع الموقع: أرقام أكبر والشاشة ما بتنطفي</label>
+  <label class="ck"><input type="checkbox" data-c="opt" data-k="allTabs"> إظهار كل الأدوات بالشريط تحت</label>
 
   <h3>الملف</h3>
   <label>رقم الصفحة (للـ PDF)</label>
@@ -139,8 +164,14 @@ nav#tabs button.on{background:#ffffff22;color:#fff;font-weight:700}
 
   <h3>تشخيص الملف</h3>
   <pre id="diag">—</pre>
-  <p class="mut">نسخة موحّدة: مساحات، خطوط، دوائر، زوايا، ميلان، مواد.</p>
+  <h3>مساعدة</h3>
+  <button class="btn alt" data-a="guide">📘 دليل الاستخدام</button>
+  <button class="btn alt" data-a="news">✨ شو الجديد</button>
+  <p class="mut" id="verTxt"></p>
 </div></div>
+
+<div id="sheet"><div class="sh"><div class="dr-h"><b id="shTitle"></b><button class="hbtn" style="background:#fff;color:#1B2233;border-color:#CBD0C8" data-a="shClose">إغلاق</button></div><div id="shBody"></div></div></div>
+<div id="toast"></div>
 
 <script>
 'use strict';
@@ -150,13 +181,15 @@ const R=Math.PI/180,D=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
 const iso=t=>'\u2066'+t+'\u2069';
 const med=a=>{const b=[...a].sort((x,y)=>x-y),n=b.length;return n?(n%2?b[(n-1)/2]:(b[n/2-1]+b[n/2])/2):null};
 const nameFor=k=>{const L=String.fromCharCode(65+k%26);return k<26?L:L+Math.floor(k/26)};
-const norm=a=>((a%360)+360)%360;
+const esc=t=>String(t==null?'':t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const nmIn=(k,id,v,ph)=>'<input class="nm" placeholder="'+ph+'" value="'+esc(v||'')+'" data-c="nm" data-k="'+k+'" data-id="'+id+'">';
+const stripMk=t=>cmText(String(t)).replace(/[\u2066\u2069]/g,'');
 
 // ================= state =================
 const S={base:null,baseAnn:null,px:null,W:0,H:0,view:{s:1,x:0,y:0},dpr:window.devicePixelRatio||1,
   pxFt:null,refs:[],dims:[],polys:[],ann:[],pieces:[],spread:null,err:null,diag:'',plabels:[],kappa:1,usePrinted:false,pxPerPt:1,autoPage:false,buf:null,pdfPage:null,origin:null,ang:0,hi:null,hiTimer:0,hiTok:0,hiTask:null,
   file:null,name:'',page:1,pages:0,isPdf:false,
-  fmt:'dec',cm:true,snapLines:true,showAnn:true,showOv:false,showLbl:true,showOutl:true,snap:false,log:[]};
+  fmt:'dec',cm:true,snapLines:true,field:false,allTabs:false,fsize:0,fileBlob:null,showAnn:true,showOv:false,showLbl:true,showOutl:true,snap:false,log:[]};
 const CAL={on:false,pts:[]};
 let tool='areas',ptrs=new Map(),tapStart=null,pinch=null,dragH=null,raf=0;
 
@@ -375,12 +408,13 @@ function draw(){
       else if(an.k==='rect'){ctx.strokeStyle='#8888';ctx.strokeRect(Math.min(an.p0[0],an.p1[0]),Math.min(an.p0[1],an.p1[1]),Math.abs(an.p1[0]-an.p0[0]),Math.abs(an.p1[1]-an.p0[1]));if(an.txt&&an.txt.length<40)L.push([(an.p0[0]+an.p1[0])/2,(an.p0[1]+an.p1[1])/2,an.txt,'#555555',0])}
     });
   }
+  scheduleSave();
   const T_=T[tool];if(T_&&T_.draw)T_.draw(ctx,L);
   if(CAL.on){CAL.pts.forEach(p=>{ctx.beginPath();ctx.arc(p[0],p[1],6/v.s,0,7);ctx.fillStyle='#14B860';ctx.fill()});
     if(CAL.pts.length===2){ctx.lineWidth=2/v.s;ctx.strokeStyle='#14B860';ctx.beginPath();ctx.moveTo(...CAL.pts[0]);ctx.lineTo(...CAL.pts[1]);ctx.stroke()}}
-  ctx.setTransform(S.dpr,0,0,S.dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='bold 12px sans-serif';
+  ctx.setTransform(S.dpr,0,0,S.dpr,0,0);ctx.textAlign='center';ctx.textBaseline='middle';const fz=S.field?15:12,ph=S.field?26:20;ctx.font='bold '+fz+'px sans-serif';
   L.forEach(([x,y,t0,c,oy])=>{const t=cmText(t0),sx=v.x+x*v.s,sy=v.y+y*v.s;
-    if(c){const w=ctx.measureText(t).width+10,yy=sy+(oy||0);ctx.fillStyle=c+'EE';ctx.fillRect(sx-w/2,yy-10,w,20);ctx.fillStyle='#fff';ctx.fillText(t,sx,yy+1)}
+    if(c){const w=ctx.measureText(t).width+10,yy=sy+(oy||0);ctx.fillStyle=c+'EE';ctx.fillRect(sx-w/2,yy-ph/2,w,ph);ctx.fillStyle='#fff';ctx.fillText(t,sx,yy+1)}
     else{ctx.fillStyle='#1B2233E6';ctx.fillRect(sx+7,sy-24,18,18);ctx.fillStyle='#fff';ctx.fillText(t,sx+16,sy-14)}});
 }
 function hitPts(arr,cx,cy,rad=26){let best=null,bd=rad;arr.forEach(p=>{const[sx,sy]=toScr(p.x,p.y);const d=Math.hypot(sx-cx,sy-cy);if(d<bd){bd=d;best=p}});return best}
@@ -493,9 +527,10 @@ function renderToolbar(){
   tb2.style.display=ex.length?'flex':'none';
   $('#hint').textContent=(CAL.on?'معايرة: اضغط على طرفي بُعد معروف.':(t.hint?t.hint():''))+(isPlacing()?' · اضغط مطوّلاً لتظهر العدسة وتظبط النقطة، ولتحريك الصورة اسحب بسرعة أو بإصبعين.':'');
 }
-function renderPanel(){$('#panel').innerHTML=cmHtml(T[tool].panel())}
+function renderPanel(){$('#panel').innerHTML=cmHtml(T[tool].panel());scheduleSave()}
 function renderAll(){
   document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===tool));
+  {const adv={circles:'دوائر',angles:'زوايا',slope:'ميلان'},mb=$('#moreBtn');if(mb){mb.classList.toggle('on',!S.allTabs&&!!adv[tool]);const ml=$('#moreLbl');if(ml)ml.textContent=(!S.allTabs&&adv[tool])?adv[tool]:'المزيد'}}
   renderToolbar();renderPanel();renderFileBar();renderScaleBox();draw();
 }
 function setTool(t){tool=t;renderAll();window.scrollTo&&window.scrollTo(0,0)}
@@ -507,6 +542,7 @@ function renderFileBar(){
   let h='<span class="grow">'+S.name+'</span>';
   if(S.isPdf&&S.pages>1)h+='<button class="chip" data-a="page" data-d="1">◀</button><span>'+S.page+' / '+S.pages+'</span><button class="chip" data-a="page" data-d="-1">▶</button>';
   h+='<button class="chip" data-a="fmtToggle">'+(S.fmt==='dec'?'الوحدة: ft':'الوحدة: ft-in')+'</button>';
+  h+='<button class="chip" data-a="report">📄 تقرير</button>';
   h+='<button class="chip" id="precChip" data-a="precInfo"></button>';
   if(S.isPdf)h+='<button class="chip" data-a="snap">'+(S.snap?'التقاط ✓':'التقاط ✗')+'</button>';
   const k=S.pxFt;h+='<button class="chip'+(k?'':' warn')+'" data-a="menu">'+(k?'المقياس ✓':'حدد المقياس')+(S.spread&&S.spread>0.05?' ⚠ مقاييس متعددة':'')+'</button>';
@@ -538,21 +574,23 @@ function useBase(cn,cn2){
   $('#empty').style.display='none';
 }
 function setStatus(t,err){const fb=$('#fileBar');if(fb)fb.innerHTML='<span class="grow" style="'+(err?'color:#9A3412;font-weight:700':'')+'">'+t+'</span>'}
-$('#file').onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;$('#fileMsg').textContent='';
+async function openFile(f,opts){
+  opts=opts||{};if(!f)return;$('#fileMsg').textContent='';saveNow();
+  S.fsize=f.size||0;S.fileBlob=opts.fromStore?null:f;
   if(f.type==='application/pdf'||/\.pdf$/i.test(f.name)){
-    try{setStatus('عم أقرا الملف '+f.name+'...');S.buf=await f.arrayBuffer()}
-    catch(err){setStatus('ما قدرت أقرا الملف: '+(err&&err.message?err.message:err),true);e.target.value='';return}
-    e.target.value='';S.name=f.name;S.isPdf=true;S.page=1;S.autoPage=true;loadPdf();
+    try{setStatus('عم أقرا الملف '+esc(f.name)+'...');S.buf=await f.arrayBuffer()}
+    catch(err){setStatus('ما قدرت أقرا الملف: '+(err&&err.message?err.message:err),true);return}
+    S.name=f.name;S.isPdf=true;S.page=opts.page||1;S.autoPage=!opts.page;loadPdf();
   }else{
-    S.name=f.name;S.buf=null;S.isPdf=false;S.pages=0;const img=new Image();
+    S.name=f.name;S.buf=null;S.isPdf=false;S.pages=0;S.page=1;const img=new Image();
     img.onload=()=>{const k=Math.min(1,3000/Math.max(img.width,img.height));const cn=document.createElement('canvas');cn.width=Math.round(img.width*k);cn.height=Math.round(img.height*k);
-      cn.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,cn.width,cn.height);useBase(cn,null);S.diag='صورة بدون قياسات. حدد المقياس يدوياً من الإعدادات (⋯).';
-      $('#diag').textContent=S.diag;setTool('areas');resize();fit()};
+      cn.getContext('2d',{willReadFrequently:true}).drawImage(img,0,0,cn.width,cn.height);useBase(cn,null);S.snap=false;S.diag='صورة بدون قياسات. حدد المقياس يدوياً من الإعدادات (⋯).';
+      $('#diag').textContent=S.diag;projOpened();setTool('areas');resize();fit()};
     img.onerror=()=>{setStatus('ما قدرت أفتح الصورة. جرّب JPG أو PNG.',true)};
-    img.src=URL.createObjectURL(f);e.target.value='';
+    img.src=URL.createObjectURL(f);
   }
-};
+}
+$('#file').onchange=e=>{const f=e.target.files[0];e.target.value='';closeSheet();openFile(f)};
 const CDNS=['https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/','https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/','https://unpkg.com/pdfjs-dist@3.11.174/build/'];
 function loadScript(src,ms){return new Promise((res,rej)=>{const sc=document.createElement('script'),t=setTimeout(()=>rej(new Error('timeout')),ms);sc.crossOrigin='anonymous';sc.onload=()=>{clearTimeout(t);res()};sc.onerror=()=>{clearTimeout(t);rej(new Error('load'))};sc.src=src;document.head.appendChild(sc)})}
 async function ensurePdfJs(){
@@ -612,6 +650,7 @@ async function loadPdf(){
     S.diag+=S.plabels.length?'\nمقاييس مطبوعة: '+S.plabels.map(l=>'1:'+l.N).join('، ')+(S.dims.length>=3?' · معامل التطابق مع الأبعاد: '+S.kappa.toFixed(4):''):'';
     $('#diag').textContent=S.diag;$('#pageIn').value=S.page;
     if(S.pieces.length)T.areas.mode='pick';
+    projOpened();
     setTool(S.pieces.length?'areas':tool);resize();fit();
   }catch(err){const m=(err&&err.message?err.message:String(err));msg.textContent='صار خطأ: '+m;renderFileBar();if(!S.base)setStatus('فشل فتح الـ PDF: '+m,true);else setStatus('فشل فتح الصفحة: '+m+' <button class="chip" data-a="menu">تفاصيل</button>',true)}
 }
@@ -827,7 +866,7 @@ function coordCard(){
   return h+'</div>'}
 function lineCard(l,i){
   const m=metrics(l),c=COL[i%COL.length],k=scaleP(l.pts),ty=m.curved?'منحني':'مستقيم';
-  let h='<div class="card'+(l.id===Ln.sel?' sel':'')+'"><span class="sw" style="background:'+c+'"></span><b>الخط L'+(i+1)+'</b> <span class="mut">('+ty+(Ln.active&&Ln.active.id===l.id?'، قيد الرسم':'')+')</span>';
+  let h='<div class="card'+(l.id===Ln.sel?' sel':'')+'"><span class="sw" style="background:'+c+'"></span><b>'+(l.name?esc(l.name):'الخط L'+(i+1))+'</b> <span class="mut">('+ty+(Ln.active&&Ln.active.id===l.id?'، قيد الرسم':'')+')</span>'+nmIn('line',l.id,l.name,'سمّي الخط (اختياري)، مثلاً: حافة الرصيف');
   if(m.P.length<2)return h+'<div class="mut">حط نقطة ثانية على الأقل.</div></div>';
   h+='<div class="big">'+fK(m.total,k)+'</div><div class="mut">الطول الكلي على الخط '+altK(m.total,k)+' · المقياس: '+scaleNote(l.pts)+'</div>'+
     '<div class="kv"><span>المسافة المستقيمة (أول↔آخر نقطة)</span><b>'+fK(m.chord,k)+'</b></div>'+
@@ -843,7 +882,7 @@ function lineCard(l,i){
   h+='</tbody></table>';
   if(m.curved)h+=layoutBlock(m,k);
   if(l.pts.length===2&&!m.curved){const nd=nearDim(m.P[0],m.P[1]);if(nd&&k){const diff=(m.total/k-nd.d.ft)*30.48;
-    h+='<div class="kv"><span>بُعد مكتوب بالـ PDF قريب: <b>'+nd.d.txt+'</b></span><b>'+fFt(nd.d.ft)+'</b></div><div class="kv"><span>الفرق عن قياسك</span><b>'+iso((diff>0?'+':'')+diff.toFixed(1)+' cm')+'</b></div>'+
+    h+='<div class="kv"><span>بُعد مكتوب بالـ PDF قريب: <b>'+nd.d.txt+'</b></span><b>'+fFt(nd.d.ft)+'</b></div><div class="kv"><span>الفرق عن قياسك</span><b class="'+(Math.abs(diff)<=2?'ok':'bad')+'">'+(Math.abs(diff)<=2?'✓ ':'⚠ ')+iso((diff>0?'+':'')+diff.toFixed(1)+' cm')+'</b></div>'+
       (Math.abs(diff)>0.5?'<div class="acts"><button class="btn alt sm" data-a="lnFitDim" data-id="'+l.id+'">اضبط الخط على هالبُعد</button></div>':'<div class="mut">✓ مطابق للبُعد المكتوب.</div>')}}
   h+='<details><summary>إحداثيات النقاط (X, Y)</summary><table><thead><tr><th>النقطة</th><th>X</th><th>Y</th></tr></thead><tbody>'+l.pts.map((p,j)=>{const c=coordOf(p.x,p.y);return'<tr><td><b>'+nameFor(j)+'</b>'+(c.warn?' ⚠':'')+'</td><td>'+cX(c)+'</td><td>'+cY(c)+'</td></tr>'}).join('')+'</tbody></table><div class="mut">من نقطة الأصل: '+(S.origin?'اللي حددتها بالرسم':'زاوية الصفحة اليسرى السفلى')+'. لتغييرها: «إحداثيات نقطة» ← «تحديد نقطة الأصل».</div></details>';
   h+='<details><summary>ضبط المقياس من مسافة معروفة</summary><div class="mut">اكتب المسافة المستقيمة الحقيقية بين نقطتين من هالخط (مقاسة بالشريط).</div><div class="row2"><select data-rs="'+l.id+'">'+m.segs.map(s=>'<option value="'+s.from+'">'+nameFor(s.from)+'→'+nameFor(s.to)+'</option>').join('')+'</select><input type="number" step="any" inputmode="decimal" placeholder="ft" data-rl="'+l.id+'"><button class="btn sm" data-a="lnRef" data-id="'+l.id+'">اعتمد</button></div></details>';
@@ -947,10 +986,10 @@ T.circles={
   panel(){
     if(!S.base)return noFileCard();
     let h='';
-    C.pc.forEach(m=>{h+='<div class="card"><span class="sw" style="background:#0891B2"></span><b>دائرة من قطعة '+m.txt+'</b><div class="big">Ø '+fFt(2*m.r/m.k)+'</div><div class="mut">القطر '+altK(2*m.r,m.k)+' (المقياس من مساحة القطعة المكتوبة بالملف، يعني دقيق)</div>'+
+    C.pc.forEach(m=>{h+='<div class="card"><span class="sw" style="background:#0891B2"></span><b>'+(m.name?esc(m.name):'دائرة من قطعة '+m.txt)+'</b>'+nmIn('pc',m.id,m.name,'سمّي الدائرة (اختياري)')+'<div class="big">Ø '+fFt(2*m.r/m.k)+'</div><div class="mut">القطر '+altK(2*m.r,m.k)+' (المقياس من مساحة القطعة المكتوبة بالملف، يعني دقيق)</div>'+
       '<div class="kv"><span>نصف القطر</span><b>'+fFt(m.r/m.k)+'</b></div><div class="kv"><span>المحيط</span><b>'+fFt(2*Math.PI*m.r/m.k)+'</b></div>'+
       '<div class="kv"><span>مساحة الدائرة المطابقة</span><b>'+sf2(Math.PI*m.r*m.r/(m.k*m.k))+'</b></div><div class="kv"><span>مساحة القطعة بالملف</span><b>'+sf2(m.sf)+'</b></div>'+
-      '<div class="kv"><span>أقصى انحراف عن الدائرة</span><b>'+fFt(m.max/m.k)+'</b></div><div class="acts"><button class="btn alt sm" data-a="pcDel" data-id="'+m.id+'">حذف</button></div></div>'});
+      '<div class="kv"><span>أقصى انحراف عن الدائرة</span><b>'+fFt(m.max/m.k)+'</b></div>'+(()=>{const nd=nearDim([m.a-m.r,m.b],[m.a+m.r,m.b]);if(!nd)return '';const df=(2*m.r/m.k-nd.d.ft)*30.48,ok=Math.abs(df)<=2;return '<div class="kv"><span>بُعد مكتوب قريب: <b>'+esc(nd.d.txt)+'</b></span><b class="'+(ok?'ok':'bad')+'">'+(ok?'✓ ':'⚠ ')+iso((df>0?'+':'')+df.toFixed(1)+' cm')+'</b></div>'+(ok?'':'<div class="mut">الفرق جاي من القطعة المرسومة بالـ PDF (مرسومة باليد فوق الدائرة). المرجع هو البُعد المكتوب.</div>')})()+'<div class="acts"><button class="btn alt sm" data-a="pcDel" data-id="'+m.id+'">حذف</button></div></div>'});
     C.man.forEach((m,i)=>{const k=scaleAt(m.x,m.y);
       h+='<div class="card"><span class="sw" style="background:#0B8457"></span><b>دائرة D'+(i+1)+'</b> <span class="mut">(مركزك + نصف القطر)</span>'+
         '<div class="row2"><span class="mut">نصف القطر (ft)</span><input type="number" step="any" inputmode="decimal" value="'+(+m.rFt.toFixed(3))+'" data-c="manR" data-id="'+m.id+'"><button class="btn alt sm" data-a="manStep" data-id="'+m.id+'" data-d="-0.5">−½</button><button class="btn alt sm" data-a="manStep" data-id="'+m.id+'" data-d="0.5">+½</button></div>'+
@@ -1030,7 +1069,7 @@ T.angles={
     const seg='<div class="card"><b>الزاوية بين خطين: اللي تنعرض بالرسم</b><div class="seg">'+[['obtuse','المنفرجة'],['acute','الحادة']].map(x=>'<button data-a="anSel" data-v="'+x[0]+'" class="'+(N.sel===x[0]?'on':'')+'">'+x[1]+'</button>').join('')+'</div><div class="mut">الحادة والمنفرجة (متمّمتها لـ 180°) بيطلعوا دايماً بالأرقام تحت.</div></div>';
     if(!N.items.length)return seg+'<div class="card warn">ما في زوايا بعد. اختار «زاوية 3 نقاط» (زاوية عند رأس) أو «زاوية بين خطين»، واضغط النقاط على الرسم. (لميلان خط واحد عن الأفقي استخدم تبويب «ميلان» واختار اليمين أو اليسار.)</div>';
     return seg+N.items.map((it,i)=>{const col=COL[i%COL.length],P=it.pts.map(p=>[p.x,p.y]);
-      let h='<div class="card"><span class="sw" style="background:'+col+'"></span><b>'+(it.t==='a3'?'زاوية عند رأس':'زاوية بين خطين')+' '+(i+1)+'</b>';
+      let h='<div class="card"><span class="sw" style="background:'+col+'"></span><b>'+(it.name?esc(it.name):(it.t==='a3'?'زاوية عند رأس':'زاوية بين خطين')+' '+(i+1))+'</b>'+nmIn('ang',it.id,it.name,'سمّي الزاوية (اختياري)');
       if(it.t==='a3'){const a=angle3(P[0],P[1],P[2]);
         h+=a?'<div class="big">'+iso(a.theta.toFixed(1)+'°')+'</div><div class="mut">الزاوية الداخلية عند الرأس: <b>'+angKind(a.theta)+'</b></div>'+
           '<div class="kv"><span>من الجهة الثانية (انعكاسية)</span><b>'+iso(a.reflex.toFixed(1)+'°')+'</b></div>'+
@@ -1094,7 +1133,7 @@ T.slope={
     let h=seg;
     SL.items.forEach((it,i)=>{
       const col=COL[i%COL.length],k=scaleP(it.pts),sg=slSegs(it);
-      h+='<div class="card"><span class="sw" style="background:'+col+'"></span><b>خط S'+(i+1)+'</b> <span class="mut">('+it.pts.length+' نقطة · المقياس: '+scaleNote(it.pts)+')</span>';
+      h+='<div class="card"><span class="sw" style="background:'+col+'"></span><b>'+(it.name?esc(it.name):'خط S'+(i+1))+'</b> <span class="mut">('+it.pts.length+' نقطة · المقياس: '+scaleNote(it.pts)+')</span>'+nmIn('sl',it.id,it.name,'سمّي الخط (اختياري)');
       if(!sg.length){h+='<div class="mut">حط نقطة ثانية على الأقل.</div></div>';return}
       h+='<table><thead><tr><th>المقطع</th><th>الطول</th><th>الزاوية</th><th>الميل</th></tr></thead><tbody>'+
         sg.map(s=>'<tr><td><b>'+nameFor(s.i)+'→'+nameFor(s.i+1)+'</b></td><td>'+fK(s.inf.len,k)+'</td><td><b>'+iso(slAngle(s.inf).toFixed(1)+'°')+'</b></td><td>'+(s.inf.slope===null?'عامودي':iso(s.inf.slope.toFixed(1)+'%'))+'</td></tr>').join('')+'</tbody></table>';
@@ -1117,6 +1156,16 @@ const M={area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
 try{S.log=JSON.parse(localStorage.getItem('tkLog')||'[]');const d=localStorage.getItem('tkDen');if(d)M.den=parseFloat(d)||M.den}catch(e){S.log=[]}
 const saveLog=()=>{try{localStorage.setItem('tkLog',JSON.stringify(S.log))}catch(e){}};
 function addLog(name,sf,n){S.log.push({name,sf,n});saveLog()}
+function matBags(sf){const T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100;if(!(T_>0&&D_>0&&B>0)||!(sf>0))return 0;return Math.ceil(sf*T_/12*28.3168*D_*(1+W_)/B-1e-6)}
+function matBind(sf){const W_=(M.waste||0)/100;return sf*M.thk/12*28.3168*M.den*(M.bind/100)*(1+W_)}
+function colorOrder(){const g={};S.pieces.forEach(p=>{if(!p.sign)return;const k=p.name||'بدون لون';g[k]=g[k]||{sf:0,rgb:p.rgb,n:0};g[k].sf+=p.sign*p.sf;g[k].n++});return Object.entries(g).filter(([k,v])=>v.sf>0.01).sort((a,b)=>b[1].sf-a[1].sf)}
+function orderCard(){
+  if(!S.pieces.length)return '';const g=colorOrder();
+  if(!g.length)return '<div class="card"><b>طلبية حسب اللون</b><p class="mut">حدد القطع بتبويب «مساحات»: اضغط على القطعة مرة لتنضاف (+) ومرتين لتنطرح (−). وهون بتطلع الأكياس لكل لون لحالها.</p></div>';
+  let tb=0,ts=0;const rows=g.map(([k,v])=>{const bg=matBags(v.sf);tb+=bg;ts+=v.sf;return '<tr><td><span class="sw" style="background:rgb('+v.rgb+')"></span>'+esc(k)+'</td><td>'+sf2(v.sf)+'</td><td><b>'+bg+' كيس</b></td></tr>'}).join('');
+  return '<div class="card" id="ordCard"><b>طلبية حسب اللون</b> <span class="mut">(من القطع المحددة · سماكة '+M.thk+' إنش · هدر '+M.waste+'%)</span><table><tbody>'+rows+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(ts)+'</td><td><b>'+tb+' كيس</b></td></tr></tfoot></table><div class="mut">الغراء للكل تقريباً: '+matBind(ts).toFixed(0)+' كغ. كل لون بيتقرّب لكيس كامل.</div><div class="acts"><button class="btn alt sm" data-a="orderCopy">نسخ الطلبية</button></div></div>';
+}
+function orderText(){const g=colorOrder();if(!g.length)return '';let tb=0;return 'طلبية حسب اللون ('+M.thk+' إنش، هدر '+M.waste+'%):\n'+g.map(([k,v])=>{const bg=matBags(v.sf);tb+=bg;return '• '+k+': '+v.sf.toFixed(1)+' sf → '+bg+' كيس'}).join('\n')+'\nالمجموع: '+tb+' كيس ('+M.bag+' كغ)'}
 function matsCalc(){
   const A_=parseFloat(M.area),T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100,Bn=M.bind/100,BD=M.bden;
   const litres=sf=>sf*T_/12*28.3168,bagsOf=sf=>Math.ceil(litres(sf)*D_*(1+W_)/B-1e-6);
@@ -1127,12 +1176,14 @@ function matsCalc(){
     if(S.log.length){let tot=0;pl='<p class="mut" style="margin:10px 0 2px">الأكياس لكل بند بالسجل (كل بند بيتقرّب لكيس كامل):</p><table><tbody>'+S.log.map(l=>{const bg=bagsOf(l.sf);tot+=bg;return'<tr><td>'+l.name+'</td><td>'+l.sf.toFixed(1)+' sf</td><td><b>'+bg+' كيس</b></td></tr>'}).join('')+'</tbody><tfoot><tr><td>المجموع</td><td></td><td><b>'+tot+' كيس</b></td></tr></tfoot></table>'}
   }
   const eo=$('#mOut'),el=$('#mLog');if(eo)eo.innerHTML=o;if(el)el.innerHTML=pl;
+  const oc=document.querySelector('#ordCard');if(oc&&S.pieces.length){const t=document.createElement('div');t.innerHTML=orderCard();if(t.firstChild&&oc.replaceWith)oc.replaceWith(t.firstChild)}
   return{out:o,per:pl};
 }
 T.mats={
   panel(){
+    if(!S.base&&!S.log.length&&!(parseFloat(M.area)>0))return noFileCard();
     const inp=(k,l,step)=>'<div><label>'+l+'</label><input type="number" step="'+(step||'any')+'" inputmode="decimal" value="'+(M[k]===''?'':M[k])+'" data-n="m" data-k="'+k+'"></div>';
-    return '<div class="card"><b>عدد الأكياس</b><div class="row">'+inp('area','المساحة (sf)')+inp('thk','سماكة الطبقة (إنش)')+'</div><div class="row">'+inp('bag','وزن الكيس (كغ)')+inp('waste','هدر %')+'</div>'+
+    return orderCard()+'<div class="card"><b>عدد الأكياس</b><div class="row">'+inp('area','المساحة (sf)')+inp('thk','سماكة الطبقة (إنش)')+'</div><div class="row">'+inp('bag','وزن الكيس (كغ)')+inp('waste','هدر %')+'</div>'+
       '<div class="acts"><button class="btn alt sm" data-a="matSel">من القطع المحددة</button><button class="btn alt sm" data-a="matPoly">من مساحة الحدود</button><button class="btn alt sm" data-a="matLog">من مجموع السجل</button></div>'+
       '<div class="out" id="mOut" style="margin-top:8px"></div><div id="mLog"></div>'+
       '<details><summary>معايرة الكثافة من شغل سابق (الأدق)</summary><p class="mut">اكتب كم كيس استهلكت فعلياً على مساحة معروفة بنفس السماكة، فبتنحفظ الكثافة الفعلية.</p><div class="row"><div><label>أكياس مستهلكة</label><input type="number" id="cBags" inputmode="decimal"></div><div><label>المساحة (sf)</label><input type="number" id="cArea" step="any" inputmode="decimal"></div></div><button class="btn" data-a="denCal">احسب واعتمد</button><p class="mut" id="cMsg"></p></details>'+
@@ -1140,16 +1191,142 @@ T.mats={
       '<div class="card"><b>السجل</b>'+(S.log.length?'<table><tbody>'+S.log.map((l,i)=>'<tr><td>'+l.name+'<br><span class="mut">'+l.n+' قطعة</span></td><td>'+sf2(l.sf)+'</td><td><button class="btn alt sm" data-a="logDel" data-i="'+i+'">حذف</button></td></tr>').join('')+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(S.log.reduce((a,l)=>a+l.sf,0))+'</td><td></td></tr></tfoot></table><div class="acts"><button class="btn alt sm" data-a="logCopy">نسخ</button><button class="btn alt sm" data-a="logClr">مسح السجل</button></div>':'<div class="warn">ما في نتائج محفوظة. احفظ مساحات من تبويب «مساحات».</div>')+'</div>';
   }
 };
-function noFileCard(){return '<div class="card"><b>ابدأ بفتح ملف</b><p class="mut">اضغط «فتح ملف» فوق واختار PDF (أفضل، فيه قياسات) أو صورة.</p></div>'}
+function noFileCard(){const idx=projIndex().sort((a,b)=>b.updated-a.updated);
+  return '<div class="card"><b>أهلا 👋</b><p class="mut">افتح مخطط PDF (الأفضل من Bluebeam، فيه قياسات) أو صورة. شغلك بينحفظ لحاله.</p><label class="btn big" for="file">📂 فتح ملف جديد</label>'+(idx.length?'<button class="btn alt big" data-a="projects">🗂 مشاريعي ('+idx.length+')</button>':'')+'</div>'+
+  (idx.length?'<div class="card"><b>آخر الشغل</b>'+idx.slice(0,3).map(e=>'<div class="kv"><span>'+esc(e.title)+'<br><span class="mut">'+fmtDate(e.updated)+' · '+(e.count||0)+' قياس</span></span><button class="btn alt sm" style="width:auto" data-a="projOpen" data-id="'+e.id+'">فتح</button></div>').join('')+'</div>':'')+
+  '<div class="card"><button class="btn alt" data-a="guide">📘 دليل الاستخدام</button></div>'}
+
+// ================= projects: autosave, undo/redo, saved files =================
+const APP_VER='2.0';
+const P={id:null,last:null,hist:[],fut:[],t:0,restoring:false};
+const fmtDate=t=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
+function projIndex(){try{return JSON.parse(localStorage.getItem('tkProj')||'[]')}catch(e){return[]}}
+function projSaveIndex(a){try{localStorage.setItem('tkProj',JSON.stringify(a))}catch(e){}}
+function projKey(name,size){let h=7;for(const c of name+'|'+size)h=((h<<5)-h+c.charCodeAt(0))|0;return 'p'+(h>>>0).toString(36)}
+function projTitle(){const e=projIndex().find(x=>x.id===P.id);return e?e.title:(S.name||'').replace(/\.[^.]+$/,'')}
+function countMeas(){return Ln.lines.filter(l=>l.pts.length>1).length+Ln.probes.length+SL.items.filter(x=>x.pts.length>1).length+C.pc.length+C.man.length+C.rings.filter(r=>r.pts.length>2).length+N.items.length+S.pieces.filter(p=>p.sign).length+(A.closed?1:0)}
+function snapState(){if(!S.base)return null;return JSON.stringify({
+  refs:S.refs,pxFt:S.dims.length?null:S.pxFt,signs:S.pieces.map(p=>p.sign||0),A:{poly:A.poly,closed:A.closed},
+  Ln:{lines:Ln.lines,probes:Ln.probes,idc:Ln.idc,pid:Ln.pid},origin:S.origin,ang:S.ang,
+  SL:{items:SL.items,idc:SL.idc,from:SL.from},C:{rings:C.rings,man:C.man,lms:C.lms,pc:C.pc,idc:C.idc,conc:C.conc},N:{items:N.items,idc:N.idc,sel:N.sel}})}
+function applyState(js){const o=JSON.parse(js);
+  S.refs=o.refs||[];if(o.pxFt&&!S.dims.length)S.pxFt=o.pxFt;
+  S.pieces.forEach((p,i)=>{p.sign=(o.signs&&o.signs[i])||0});
+  A.poly=(o.A&&o.A.poly)||[];A.closed=!!(o.A&&o.A.closed);
+  const l=o.Ln||{};Ln.lines=l.lines||[];Ln.probes=l.probes||[];Ln.idc=l.idc||1;Ln.pid=l.pid||1;Ln.active=null;Ln.sel=null;
+  S.origin=o.origin||null;S.ang=o.ang||0;
+  const sl=o.SL||{};SL.items=sl.items||[];SL.idc=sl.idc||1;SL.from=sl.from||'auto';SL.active=null;
+  const c=o.C||{};C.rings=c.rings||[];C.man=c.man||[];C.lms=c.lms||[];C.pc=c.pc||[];C.idc=c.idc||1;C.conc=c.conc!==false;C.cur=Math.max(0,C.rings.length-1);
+  const n=o.N||{};N.items=n.items||[];N.idc=n.idc||1;N.sel=n.sel||'obtuse';N.cur=[];
+}
+function scheduleSave(){if(P.restoring||!P.id)return;clearTimeout(P.t);P.t=setTimeout(saveNow,450)}
+function saveNow(){if(!P.id||P.restoring)return;clearTimeout(P.t);const cur=snapState();if(cur===null||cur===P.last)return;
+  if(P.last!==null){P.hist.push(P.last);if(P.hist.length>60)P.hist.shift()}P.fut=[];P.last=cur;persist(cur);updUndo()}
+function persist(cur){
+  try{const key='tkP:'+P.id,rec=JSON.parse(localStorage.getItem(key)||'{}');rec.pages=rec.pages||{};rec.pages[S.page]=cur;localStorage.setItem(key,JSON.stringify(rec));
+    const idx=projIndex();let e=idx.find(x=>x.id===P.id);
+    if(!e){e={id:P.id,name:S.name,title:(S.name||'').replace(/\.[^.]+$/,''),size:S.fsize||0,kind:S.isPdf?'pdf':'img'};idx.push(e)}
+    e.updated=Date.now();e.lastPage=S.page;e.count=countMeas();projSaveIndex(idx)}
+  catch(e){toast('ما قدرت أحفظ الشغل (ذاكرة الجهاز ممتلئة).')}}
+function projOpened(){
+  P.id=projKey(S.name,S.fsize||0);P.hist=[];P.fut=[];P.last=null;let restored=false;
+  try{const rec=JSON.parse(localStorage.getItem('tkP:'+P.id)||'null'),st=rec&&rec.pages&&rec.pages[S.page];
+    if(st){P.restoring=true;applyState(st);P.restoring=false;P.last=st;restored=true}}catch(e){P.restoring=false}
+  if(!restored)P.last=snapState();
+  if(P.last)persist(P.last);
+  if(S.fileBlob){const b=S.fileBlob;S.fileBlob=null;idbPut(P.id,b).catch(()=>{})}
+  updUndo();if(restored&&countMeas())toast('رجّعت قياساتك المحفوظة لهالملف ✓');
+}
+function updUndo(){const u=document.querySelector('#bUndo'),r=document.querySelector('#bRedo');if(u)u.disabled=!P.hist.length;if(r)r.disabled=!P.fut.length}
+function restoreSnap(js){P.restoring=true;try{applyState(js);persist(js)}finally{P.restoring=false}renderAll();updUndo()}
+function undo(){saveNow();if(!P.hist.length)return;P.fut.push(P.last);P.last=P.hist.pop();restoreSnap(P.last);toast('↶ تراجعت')}
+function redo(){if(!P.fut.length)return;P.hist.push(P.last);P.last=P.fut.pop();restoreSnap(P.last);toast('↷ رجّعت')}
+// the original files are kept on the phone (IndexedDB) so a project reopens with one tap
+function idb(){return new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('no idb'));const r=indexedDB.open('tkFiles',1);r.onupgradeneeded=()=>r.result.createObjectStore('f');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbDo(mode,fn){const db=await idb();return new Promise((res,rej)=>{const tx=db.transaction('f',mode),st=tx.objectStore('f'),rq=fn(st);tx.oncomplete=()=>res(rq&&rq.result);tx.onerror=()=>rej(tx.error)})}
+const idbPut=(k,v)=>idbDo('readwrite',st=>st.put(v,k)),idbGet=k=>idbDo('readonly',st=>st.get(k)),idbDel=k=>idbDo('readwrite',st=>st.delete(k));
+function projectsHtml(){const idx=projIndex().sort((a,b)=>b.updated-a.updated);
+  if(!idx.length)return '<p class="mut">ما في مشاريع محفوظة بعد. افتح ملف وابدأ القياس، وبينحفظ لحاله.</p>';
+  return idx.map(e=>'<div class="card"><b>'+esc(e.title)+'</b>'+(e.id===P.id?' <span class="ok">(مفتوح)</span>':'')+'<div class="mut">'+esc(e.name)+(e.kind==='pdf'&&e.lastPage?' · صفحة '+e.lastPage:'')+'<br>'+fmtDate(e.updated)+' · '+(e.count||0)+' قياس</div><div class="acts"><button class="btn sm" style="width:auto" data-a="projOpen" data-id="'+e.id+'">فتح</button><button class="btn alt sm" style="width:auto" data-a="projRen" data-id="'+e.id+'">إعادة تسمية</button><button class="btn alt sm" style="width:auto" data-a="projDel" data-id="'+e.id+'">حذف</button></div></div>').join('')}
+// ---------- bottom sheet / toast ----------
+function openSheet(title,html){$('#shTitle').textContent=title;$('#shBody').innerHTML=cmHtml(html);$('#sheet').classList.add('open')}
+function closeSheet(){const sh=document.querySelector('#sheet');if(sh&&sh.classList)sh.classList.remove('open')}
+function toast(t){const el=document.querySelector('#toast');if(!el)return;el.textContent=t;el.style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>{el.style.display='none'},2600)}
+// ---------- guide / what's new ----------
+const GUIDE='<div class="card"><b>1. افتح الملف</b><p class="mut">«فتح ملف» فوق. الـ PDF اللي عليه قياسات (من Bluebeam) أفضل: المقياس بيتحدد لحاله.</p></div>'+
+  '<div class="card"><b>2. المساحات</b><p class="mut">تبويب «مساحات»: اضغط على القطعة مرة لتنضاف (+) ومرة ثانية لتنطرح (−). المجموع والأكياس بيطلعوا تحت.</p></div>'+
+  '<div class="card"><b>3. الأطوال</b><p class="mut">تبويب «خطوط» ← «رسم خط». كبّر لحد ما «دقة البكسل» تصير 1 cm أو أقل، واضغط مطوّلاً لتظهر العدسة. إذا في بُعد مكتوب جنب الخط بتشوف الفرق ✓ أو ⚠.</p></div>'+
+  '<div class="card"><b>4. المواد والتقرير</b><p class="mut">تبويب «مواد»: الأكياس لكل لون. وزر «📄 تقرير» بيعطيك صورة ونص تبعتهم على واتساب.</p></div>'+
+  '<div class="card"><b>شغلك محفوظ</b><p class="mut">كل شي بينحفظ لحاله. ↶ ↷ فوق للتراجع والإعادة، و«مشاريعي» لترجع لأي شغل قديم. الأدوات الإضافية (دوائر، زوايا، ميلان) تحت «المزيد».</p></div>';
+const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
+// ---------- field mode / tab bar ----------
+let wakeLk=null;
+async function applyField(){document.body.classList.toggle('field',!!S.field);try{localStorage.setItem('tkField',S.field?'1':'')}catch(e){}
+  try{if(S.field&&navigator.wakeLock&&document.visibilityState==='visible')wakeLk=await navigator.wakeLock.request('screen');else if(!S.field&&wakeLk){await wakeLk.release();wakeLk=null}}catch(e){}}
+document.addEventListener('visibilitychange',()=>{if(S.field&&document.visibilityState==='visible')applyField()});
+function applyAllTabs(){document.body.classList.toggle('alltabs',!!S.allTabs);try{localStorage.setItem('tkAllTabs',S.allTabs?'1':'')}catch(e){}}
+// ---------- report ----------
+function reportItems(){
+  const out=[],H=t=>out.push({t,b:1}),Rw=t=>out.push({t:stripMk(t)});
+  const sel=S.pieces.filter(p=>p.sign);
+  if(sel.length){H('المساحات (من قطع الـ PDF)');let tot=0;sel.forEach(p=>{tot+=p.sign*p.sf;Rw((p.sign>0?'+ ':'− ')+(p.name||'')+' '+p.sf.toFixed(2)+' sf')});Rw('المجموع: '+tot.toFixed(2)+' sf')}
+  const g=colorOrder();if(g.length){H('طلبية المواد ('+M.thk+' إنش، هدر '+M.waste+'%، كيس '+M.bag+' كغ)');let tb=0,ts=0;g.forEach(([k,v])=>{const bg=matBags(v.sf);tb+=bg;ts+=v.sf;Rw(k+': '+v.sf.toFixed(1)+' sf → '+bg+' كيس')});Rw('المجموع: '+tb+' كيس · غراء ≈ '+matBind(ts).toFixed(0)+' كغ')}
+  if(S.log.length){H('السجل');S.log.forEach(l=>Rw(l.name+': '+l.sf.toFixed(2)+' sf'))}
+  const ls=Ln.lines.filter(l=>l.pts.length>1);if(ls.length){H('الأطوال');ls.forEach((l,i)=>{const m=metrics(l),k=scaleP(l.pts);Rw((l.name||'L'+(i+1))+': '+(k?fFt(m.total/k):Math.round(m.total)+' px'))})}
+  if(Ln.probes.length){H('الإحداثيات (من نقطة الأصل)');Ln.probes.forEach(p=>{const c=coordOf(p.x,p.y);Rw(p.name+': X '+cX(c)+' · Y '+cY(c))})}
+  if(C.pc.length||C.man.length){H('الدوائر');C.pc.forEach(m=>Rw((m.name||'دائرة '+m.txt)+': القطر '+fFt(2*m.r/m.k)));C.man.forEach((m,i)=>Rw('دائرة يدوية '+(i+1)+': نصف القطر '+fFt(m.rFt)))}
+  const sl=SL.items.filter(x=>x.pts.length>1);if(sl.length){H('الميلان');sl.forEach((it,i)=>slSegs(it).forEach(sg=>Rw((it.name||'S'+(i+1))+' '+nameFor(sg.i)+'→'+nameFor(sg.i+1)+': '+slAngle(sg.inf).toFixed(1)+'° · ميل '+(sg.inf.slope===null?'عامودي':sg.inf.slope.toFixed(1)+'%'))))}
+  if(N.items.length){H('الزوايا');N.items.forEach((it,i)=>{const P_=it.pts.map(p=>[p.x,p.y]);if(it.t==='a3'){const a=angle3(P_[0],P_[1],P_[2]);if(a)Rw((it.name||'زاوية '+(i+1))+': '+a.theta.toFixed(1)+'° ('+angKind(a.theta)+')')}else{const a=angle4(...P_);if(a)Rw((it.name||'زاوية '+(i+1))+': الحادة '+a.acute.toFixed(1)+'° · المنفرجة '+a.obtuse.toFixed(1)+'°')}})}
+  if(!out.length)H('ما في قياسات بعد.');
+  return out}
+function reportText(){return projTitle()+'\n'+S.name+(S.isPdf?' · صفحة '+S.page:'')+' · '+new Date().toLocaleDateString()+'\n\n'+reportItems().map(x=>x.b?'【'+x.t+'】':x.t).join('\n')}
+function makeReport(){
+  if(!S.base)return null;saveNow();
+  const W=1400,sc=W/S.W,ph=Math.round(S.H*sc),items=reportItems(),lh=36,head=140,c=document.createElement('canvas');
+  c.width=W;c.height=head+ph+items.length*lh+60;const g=c.getContext('2d');
+  g.fillStyle='#fff';g.fillRect(0,0,W,c.height);g.fillStyle='#1F2A44';g.fillRect(0,0,W,head-16);
+  g.direction='rtl';g.textAlign='right';g.textBaseline='middle';g.fillStyle='#fff';g.font='bold 40px sans-serif';g.fillText(projTitle(),W-30,46);
+  g.font='24px sans-serif';g.fillText(S.name+(S.isPdf?' · صفحة '+S.page:'')+' · '+new Date().toLocaleDateString(),W-30,94);
+  g.save();g.translate(0,head);g.scale(sc,sc);g.drawImage((S.showAnn&&S.baseAnn)?S.baseAnn:S.base,0,0);
+  const keep=S.view,L=[];S.view={s:sc,x:0,y:head};
+  try{['areas','lines','circles','angles','slope'].forEach(t=>{try{T[t].draw(g,L)}catch(e){}})}finally{S.view=keep}
+  g.restore();g.direction='ltr';g.textAlign='center';g.font='bold 20px sans-serif';
+  L.forEach(([x,y,t0,col,oy])=>{if(!col)return;const t=stripMk(t0),sx=x*sc,sy=head+y*sc+(oy||0)*1.5,w=g.measureText(t).width+14;g.fillStyle=col+'EE';g.fillRect(sx-w/2,sy-15,w,30);g.fillStyle='#fff';g.fillText(t,sx,sy+1)});
+  let y=head+ph+44;g.direction='rtl';g.textAlign='right';
+  items.forEach(it=>{g.font=(it.b?'bold 28px':'24px')+' sans-serif';g.fillStyle=it.b?'#1F2A44':'#1B2233';g.fillText(it.t,W-30,y);y+=lh});
+  return c}
+function shareReport(){
+  const c=makeReport();if(!c){alert('افتح ملف أول.');return}
+  const fn=(projTitle()||'report').replace(/[\\/:*?"<>|]+/g,'_')+'.png';
+  c.toBlob(async b=>{if(!b){alert('ما قدرت أعمل صورة التقرير.');return}
+    const file=typeof File==='function'?new File([b],fn,{type:'image/png'}):b;
+    try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:projTitle(),text:reportText()});return}}catch(e){if(e&&e.name==='AbortError')return}
+    const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000);toast('انحفظت صورة التقرير بالتنزيلات.')},'image/png')}
 
 // ================= actions (event delegation) =================
 const ACT={
   menu(){$('#drawer').classList.toggle('open')},
-  tool(d){setTool(d.t)},
+  tool(d){closeSheet();setTool(d.t)},
+  undo(){undo()},redo(){redo()},
+  shClose(){closeSheet()},
+  more(){openSheet('أدوات إضافية','<button class="btn big" data-a="tool" data-t="circles">◎ دوائر</button><button class="btn big" data-a="tool" data-t="angles">∠ زوايا</button><button class="btn big" data-a="tool" data-t="slope">◢ ميلان</button><label class="ck" style="display:flex;gap:8px;margin-top:12px"><input type="checkbox" data-c="opt" data-k="allTabs"'+(S.allTabs?' checked':'')+'> إظهار كل الأدوات بالشريط تحت</label>')},
+  projects(){$('#drawer').classList.remove('open');openSheet('مشاريعي',projectsHtml())},
+  async projOpen(d){const e=projIndex().find(x=>x.id===d.id);if(!e)return;closeSheet();$('#drawer').classList.remove('open');let b=null;try{b=await idbGet(e.id)}catch(err){}
+    if(!b){alert('الملف الأصلي («'+e.name+'») مش محفوظ بالجهاز. افتحه من «فتح ملف» وبترجع قياساتك لحالها.');return}
+    const f=typeof File==='function'?new File([b],e.name,{type:b.type||(e.kind==='pdf'?'application/pdf':'image/png')}):Object.assign(b,{name:e.name});openFile(f,{page:e.kind==='pdf'?(e.lastPage||1):0,fromStore:true})},
+  projRen(d){const idx=projIndex(),e=idx.find(x=>x.id===d.id);if(!e)return;const t=prompt('اسم المشروع:',e.title);if(t===null)return;e.title=t.trim()||e.title;projSaveIndex(idx);openSheet('مشاريعي',projectsHtml());renderPanel()},
+  projDel(d){const idx=projIndex(),e=idx.find(x=>x.id===d.id);if(!e||!confirm('تحذف المشروع «'+e.title+'» وكل قياساته؟'))return;projSaveIndex(idx.filter(x=>x.id!==d.id));try{localStorage.removeItem('tkP:'+d.id)}catch(err){}idbDel(d.id).catch(()=>{});if(P.id===d.id)P.id=null;openSheet('مشاريعي',projectsHtml());renderPanel()},
+  report(){$('#drawer').classList.remove('open');if(!S.base){alert('افتح ملف أول.');return}const c=makeReport();let pv='';try{pv=c?'<img src="'+c.toDataURL('image/jpeg',0.7)+'" style="width:100%;border:1px solid #ccc;border-radius:8px">':''}catch(e){}
+    openSheet('تقرير: '+projTitle(),'<button class="btn big" data-a="repShare">📤 مشاركة صورة التقرير</button><button class="btn alt" data-a="repText">📋 نسخ التقرير كنص</button><div style="margin-top:10px">'+pv+'</div>')},
+  repShare(){shareReport()},
+  repText(){copyText(reportText())},
+  orderCopy(){copyText(orderText())},
+  guide(){$('#drawer').classList.remove('open');openSheet('دليل الاستخدام',GUIDE+'<button class="btn" data-a="shClose">يلا نبلّش</button>')},
+  news(){$('#drawer').classList.remove('open');openSheet('شو الجديد',NEWS+'<button class="btn" data-a="shClose">تمام</button>')},
   mode(d){T[tool].mode=d.m;if(tool==='lines'&&d.m==='coord'&&S.base&&!S.origin)centerOrigin();renderToolbar();renderPanel();draw()},
   tbx(d){T[tool].tbx(d.k)},
   fit(){fit()},
-  page(d){if(!S.buf||!S.isPdf)return;const p=Math.min(Math.max(1,S.page+(+d.d)),S.pages);if(p===S.page)return;S.page=p;loadPdf()},
+  page(d){if(!S.buf||!S.isPdf)return;saveNow();const p=Math.min(Math.max(1,S.page+(+d.d)),S.pages);if(p===S.page)return;S.page=p;loadPdf()},
   fmt(d){S.fmt=d.f;document.querySelectorAll('#fmtSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===d.f));renderAll()},
   calOn(){CAL.on=!CAL.on;CAL.pts=[];$('#calBox').style.display=CAL.on?'':'none';if(CAL.on)$('#drawer').classList.remove('open');renderToolbar();draw()},
   calApply(){
@@ -1211,8 +1388,9 @@ const ACT={
 };
 function copyText(t){if(!t){alert('ما في شي للنسخ.');return}t=cmText(t).replace(/ · ([\d.]+ cm)/g,' ($1)');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert('اننسخ.'),()=>prompt('انسخ النص:',t))}
 const CHG={
-  opt(v,d,t){S[d.k]=t.checked;if(d.k==='showAnn'){S.hi=null;scheduleHi()}if(d.k==='cm'){renderAll();return}draw()},
-  page(v){if(!S.buf||!S.isPdf){alert('افتح ملف PDF أول.');return}const p=Math.max(1,Math.min(S.pages||1,parseInt(v)||1));$('#pageIn').value=p;if(p===S.page&&S.base)return;S.page=p;loadPdf()},
+  nm(v,d){const lists={line:Ln.lines,sl:SL.items,pc:C.pc,ang:N.items},it=(lists[d.k]||[]).find(x=>x.id===+d.id);if(it){it.name=String(v).trim();renderPanel();draw()}},
+  opt(v,d,t){S[d.k]=t.checked;if(d.k==='field'){applyField();renderAll();return}if(d.k==='allTabs'){applyAllTabs();document.querySelectorAll('[data-k="allTabs"]').forEach(x=>x.checked=S.allTabs);renderAll();return}if(d.k==='showAnn'){S.hi=null;scheduleHi()}if(d.k==='cm'){renderAll();return}draw()},
+  page(v){if(!S.buf||!S.isPdf){alert('افتح ملف PDF أول.');return}saveNow();const p=Math.max(1,Math.min(S.pages||1,parseInt(v)||1));$('#pageIn').value=p;if(p===S.page&&S.base)return;S.page=p;loadPdf()},
   spacing(v){Ln.spacing=v;renderPanel()},
   manR(v,d){const m=C.man.find(c=>c.id===+d.id),x=parseFloat(v);if(m&&x>0){m.rFt=x;C.lastR=x}renderPanel();draw()}
 };
@@ -1221,14 +1399,19 @@ document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest
 document.addEventListener('change',e=>{const t=e.target.closest&&e.target.closest('[data-c]');if(!t)return;const f=CHG[t.dataset.c];if(f)f(t.value,t.dataset,t)});
 document.addEventListener('input',e=>{const t=e.target.closest&&e.target.closest('[data-n]');if(!t)return;const f=INP[t.dataset.n];if(f)f(t.value,t.dataset,t)});
 $('#drawer').addEventListener('click',e=>{if(e.target===$('#drawer'))ACT.menu()});
+$('#sheet').addEventListener('click',e=>{if(e.target===$('#sheet'))closeSheet()});
 
 // ================= init =================
 Object.keys(T).forEach(k=>T[k].reset&&T[k].reset());
+try{S.field=localStorage.getItem('tkField')==='1';S.allTabs=localStorage.getItem('tkAllTabs')==='1'}catch(e){}
+document.querySelectorAll('[data-k="field"]').forEach(x=>x.checked=S.field);document.querySelectorAll('[data-k="allTabs"]').forEach(x=>x.checked=S.allTabs);
+applyField();applyAllTabs();{const vt=document.querySelector('#verTxt');if(vt)vt.textContent='الإصدار '+APP_VER}
 renderAll();resize();matsCalc();
+try{if(!localStorage.getItem('tkSeen')){localStorage.setItem('tkSeen','1');ACT.guide()}else if(localStorage.getItem('tkVer')!==APP_VER)ACT.news();localStorage.setItem('tkVer',APP_VER)}catch(e){}
 </script>
 <script>
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});   // ask the phone not to clear the saved copy
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});   // ask the phone not to clear the saved copy and the projects
 </script>
 </body>
 </html>
