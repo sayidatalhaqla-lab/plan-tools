@@ -282,7 +282,7 @@ function readPdf(annots,toPx){
     if(a.subtype==='Line'&&a.lineCoordinates){const c=a.lineCoordinates,p0=toPx(c[0],c[1]),p1=toPx(c[2],c[3]),ft=parseLen(txt),mid=[(p0[0]+p1[0])/2,(p0[1]+p1[1])/2];
       ann.push({k:'line',mid,txt});if(ft>0)dims.push({mid,ft,txt,len:D(p0,p1),p0,p1})}
     else if((a.subtype==='Polygon'||a.subtype==='PolyLine')&&a.vertices){const pts=toPairs(a.vertices).map(p=>toPx(p[0],p[1])),sf=parseArea(txt);
-      ann.push({k:'poly',pts,txt,closed:a.subtype==='Polygon'});if(a.subtype==='Polygon'&&sf&&pts.length>=3)polys.push({txt,sf,pts,ap:shoelace(pts),sign:0,name:'',rgb:[128,128,128],lp:null})}
+      ann.push({k:'poly',pts,txt,closed:a.subtype==='Polygon'});if(a.subtype==='Polygon'&&sf&&pts.length>=3)polys.push({id:a.id,txt,sf,pts,ap:shoelace(pts),sign:0,name:'',rgb:[128,128,128],lp:null})}
     else if(a.rect&&(a.subtype==='Square'||a.subtype==='FreeText'||a.subtype==='Circle')){const p0=toPx(a.rect[0],a.rect[1]),p1=toPx(a.rect[2],a.rect[3]);ann.push({k:'rect',p0,p1,txt:a.subtype==='FreeText'?txt:''})}
   }
   const cl=med(dims.map(d=>d.len/d.ft)),ca=med(polys.map(p=>p.ap/p.sf)),px=cl||(ca?Math.sqrt(ca):null);
@@ -291,16 +291,90 @@ function readPdf(annots,toPx){
   if(big.length>=4){const r=big.map(d=>d.len/d.ft).sort((x,y)=>x-y),q=p=>r[Math.min(r.length-1,Math.floor(p*(r.length-1)))];spread=(q(0.9)-q(0.1))/med(r)}
   return{dims,polys,ann,pxFt:px,err,spread,cnt,check:(cl&&ca)?(cl*cl)/ca:null};
 }
-const PDF_COL={'Berlin Blue (كحلي)':[36,36,60],'Rainbow Blue (أزرق)':[36,84,132],'Teal (تركوازي)':[84,156,156],'Reseda (زيتوني)':[108,132,84],'Signal Green (أخضر غامق)':[36,60,60],'Orange (برتقالي)':[228,60,36],'Rose (وردي)':[204,36,36]};
-function pieceInfo(p){ // colour name + a label point well inside the piece
-  let x0=1e9,y0=1e9,x1=-1,y1=-1;for(const q of p.pts){x0=Math.min(x0,q[0]);y0=Math.min(y0,q[1]);x1=Math.max(x1,q[0]);y1=Math.max(y1,q[1])}
-  const Rr=[],G=[],B=[];let tries=0,best=null,bd=-1;const step=Math.max(1,Math.floor(p.pts.length/60));
-  while(Rr.length<150&&tries<4000){tries++;const x=x0+Math.random()*(x1-x0),y=y0+Math.random()*(y1-y0);if(!inPoly(x,y,p.pts))continue;
+function prng(seed){let a=(seed>>>0)||1;return()=>{a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function domColor(smp){ // most common colour of the samples, ignoring paper white; null if nothing
+  const bins=new Map();let nw=0;
+  smp.forEach(([r,g,b])=>{if(r+g+b>735)return;nw++;const k=(r>>4)<<8|(g>>4)<<4|(b>>4),e=bins.get(k)||{c:0,r:0,g:0,b:0};e.c++;e.r+=r;e.g+=g;e.b+=b;bins.set(k,e)});
+  if(!smp.length)return null;if(nw<smp.length*0.25)return[245,245,245];
+  let top=null;bins.forEach(e=>{if(!top||e.c>top.c)top=e});return[top.r/top.c,top.g/top.c,top.b/top.c].map(Math.round)}
+const sat=c=>{if(!c)return 0;const mx=Math.max(...c),mn=Math.min(...c);return mx?(mx-mn)/mx:0};
+function pbb(q){if(!q.bb){let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;for(const v of q.pts){x0=Math.min(x0,v[0]);y0=Math.min(y0,v[1]);x1=Math.max(x1,v[0]);y1=Math.max(y1,v[1])}q.bb=[x0,y0,x1,y1]}return q.bb}
+function pieceInfo(p){ // a label point in the visible part of the piece + its colour, read from the drawing AND from the markup (same result every time)
+  const[x0,y0,x1,y1]=pbb(p);
+  const inner=(S.pieces||[]).filter(q=>q!==p&&q.sf<p.sf&&(()=>{const b=pbb(q);return b[0]>=x0-1&&b[1]>=y0-1&&b[2]<=x1+1&&b[3]<=y1+1})());   // smaller pieces sitting inside this one
+  const rnd=prng(Math.round(p.sf*1000)+p.pts.length*7919),sc=[],sa=[];let tries=0,best=null,bd=-1;const step=Math.max(1,Math.floor(p.pts.length/60));
+  while(sc.length<300&&tries<8000){tries++;const x=x0+rnd()*(x1-x0),y=y0+rnd()*(y1-y0);if(!inPoly(x,y,p.pts))continue;
+    if(inner.some(q=>inPoly(x,y,q.pts)))continue;                                   // that spot belongs to the inner piece
     let md=1e18;for(let i=0;i<p.pts.length;i+=step){const d=(p.pts[i][0]-x)**2+(p.pts[i][1]-y)**2;if(d<md)md=d}if(md>bd){bd=md;best=[x,y]}
-    if(S.px&&x>=0&&y>=0&&x<S.W&&y<S.H){const i=(Math.floor(y)*S.W+Math.floor(x))*4;Rr.push(S.px[i]);G.push(S.px[i+1]);B.push(S.px[i+2])}else Rr.push(0)}
-  p.lp=best||[(x0+x1)/2,(y0+y1)/2];
-  if(S.px&&G.length){const m=[med(Rr),med(G),med(B)];let bn=null,bdd=1e9;for(const k in PDF_COL){const c=PDF_COL[k],d=(c[0]-m[0])**2+(c[1]-m[1])**2+(c[2]-m[2])**2;if(d<bdd){bdd=d;bn=k}}p.name=bn;p.rgb=m.map(Math.round)}
+    if(x>=0&&y>=0&&x<S.W&&y<S.H){const i=(Math.floor(y)*S.W+Math.floor(x))*4;if(S.px)sc.push([S.px[i],S.px[i+1],S.px[i+2]]);if(S.pxA)sa.push([S.pxA[i],S.pxA[i+1],S.pxA[i+2]])}}
+  p.lp=best||[(x0+x1)/2,(y0+y1)/2];p.rgbC=domColor(sc);p.rgbA=domColor(sa);p.rgb=p.rgbC;
 }
+// the estimator's own colour for each area markup (/IC = fill colour), read straight from the PDF file
+function rawAnnotColors(buf){const byId={},byTxt={};if(!buf)return{byId,byTxt};
+  try{const txt=new TextDecoder('latin1').decode(new Uint8Array(buf)),re=/\/Subtype\s*\/Polygon/g;let m;
+    while((m=re.exec(txt))){const st=txt.lastIndexOf(' obj',m.index),en=txt.indexOf('endobj',m.index);if(st<0||en<0)continue;
+      const head=txt.slice(Math.max(0,st-24),st+4).match(/(\d+)\s+(\d+)\s+obj$/),body=txt.slice(st,en),ic=body.match(/\/IC\s*\[([^\]]*)\]/);if(!head||!ic)continue;
+      const v=ic[1].trim().split(/\s+/).map(Number);if(v.length!==3||!v.every(isFinite))continue;const rgb=v.map(x=>Math.round(Math.max(0,Math.min(1,x))*255));
+      byId[head[1]+'R']=rgb;const ct=body.match(/\/Contents\s*\(((?:\\.|[^\\)])*)\)/);
+      if(ct){const t=ct[1].replace(/\\([0-7]{1,3})/g,(q,o)=>String.fromCharCode(parseInt(o,8))).replace(/\\(.)/g,'$1').trim();if(t&&!(t in byTxt))byTxt[t]=rgb}}}
+  catch(e){}return{byId,byTxt}}
+const cdist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1],a[2]-b[2]);
+function colorWord(c){const r=c[0]/255,g=c[1]/255,b=c[2]/255,mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn,s=mx?d/mx:0;
+  if(s<0.18){if(mx<0.22)return 'أسود';if(mx<0.55)return 'رمادي غامق';if(mx<0.9)return 'رمادي';return 'أبيض'}
+  let h=0;if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h*=60;if(h<0)h+=360;
+  let w=h<15||h>=345?'أحمر':h<45&&mx<0.62?'بني':h<40?'برتقالي':h<68?'أصفر':h<160?'أخضر':h<195?'تركوازي':h<255?'أزرق':h<290?'بنفسجي':'وردي';
+  if(mx<0.35)w+=' غامق';else if(s<0.4&&mx>0.75)w+=' فاتح';return w}
+// colour legend printed on the sheet: a colour / material name with a colour swatch beside it
+const LEG_WORDS=/#\s?\d{3,4}|\b(black|gr[ae]y|blue|green|red|orange|yellow|teal|rose|pink|purple|violet|brown|beige|tan|cardinal|reseda|signal|rainbow|berlin|natural|sand|terracotta|charcoal|olive|lime|aqua|turquoise|navy|maroon|burgundy|cream|ivory|gold|silver|mulch|turf)\b/i;
+function bestSwatch(ranges,y0,y1){let best=null;
+  for(const[xa,xb]of ranges){const bins=new Map();let n=0;
+    for(let y=Math.max(0,Math.floor(y0));y<Math.min(S.H,Math.ceil(y1));y++)for(let x=Math.max(0,Math.floor(xa));x<Math.min(S.W,Math.ceil(xb));x++){
+      const i=(y*S.W+x)*4,r=S.px[i],g=S.px[i+1],b=S.px[i+2];n++;if(r+g+b>720)continue;const k=(r>>4)<<8|(g>>4)<<4|(b>>4),e=bins.get(k)||{c:0,r:0,g:0,b:0};e.c++;e.r+=r;e.g+=g;e.b+=b;bins.set(k,e)}
+    if(!n)continue;let top=null;bins.forEach(e=>{if(!top||e.c>top.c)top=e});
+    if(top&&top.c>=Math.max(12,n*0.25)&&(!best||top.c/n>best.f))best={f:top.c/n,rgb:[top.r/top.c,top.g/top.c,top.b/top.c].map(Math.round)}}
+  return best?best.rgb:null}
+function findLegend(items,conv){
+  if(!S.px||!items)return[];const out=[],seen=new Set();
+  for(const it of items){const t=String(it.str||'').replace(/\s+/g,' ').trim();if(!t||t.length>48||!LEG_WORDS.test(t))continue;
+    if(/legend|key plan|colou?rs?\s*$|^colou?r\b/i.test(t)&&!/#\s?\d/.test(t))continue;              // titles like "Rubber Colours"
+    const tr=it.transform||[1,0,0,1,0,0],fs=Math.hypot(tr[2],tr[3])||10,a=conv(tr[4],tr[5]),b=conv(tr[4]+(it.width||fs*t.length*0.5),tr[5]),h=fs*S.pxPerPt;if(!(h>2))continue;
+    const y0=Math.min(a[1],b[1])-h*0.9,y1=Math.max(a[1],b[1])+h*0.25,xL=Math.min(a[0],b[0]),xR=Math.max(a[0],b[0]);
+    const sw=bestSwatch([[xL-8*h,xL-0.3*h],[xR+0.3*h,xR+8*h]],y0,y1);
+    const nm=t.replace(/\s*[-–]\s*(rubber|pip|surface|safety).*$/i,'').slice(0,40);
+    if(sw&&!seen.has(nm)){seen.add(nm);out.push({name:nm,rgb:sw})}}
+  return out.length>=2?out:[]}
+// which piece sits inside which: the visible (net) area of a piece = its area minus the pieces drawn on top of it
+function nestPieces(){const ps=S.pieces;ps.forEach(q=>{q.par=null;q.total=false});
+  const inside=(q,p)=>{const b=pbb(q),c=pbb(p);if(b[0]<c[0]-1||b[1]<c[1]-1||b[2]>c[2]+1||b[3]>c[3]+1)return false;let k=0;for(const v of q.pts)if(inPoly(v[0],v[1],p.pts))k++;return k>=q.pts.length*0.9};
+  ps.forEach(q=>{let par=null;ps.forEach(p=>{if(p!==q&&p.sf>q.sf&&(!par||p.sf<par.sf)&&inside(q,p))par=p});q.par=par});
+  ps.forEach(p=>{p.net=Math.max(0,p.sf-ps.filter(c=>c.par===p).reduce((a,c)=>a+c.sf,0))});
+  if(ps.length>=3){const big=ps.reduce((a,b)=>b.sf>a.sf?b:a),rest=ps.filter(p=>p!==big).reduce((a,p)=>a+p.net,0);if(Math.abs(rest-big.sf)<=big.sf*0.015)big.total=true}}   // a piece drawn around everything = the total area, not a colour
+function gColThk(){try{return JSON.parse(localStorage.getItem('tkColThk')||'{}')}catch(e){return{}}}
+function colThk(key){if(S.thkC&&key in S.thkC)return S.thkC[key];const g=gColThk();if(key in g)return g[key];return M.thk}   // inches
+const thkTxt=th=>(M.tu==='mm'?(th*25.4).toFixed(0)+' مم':(+th.toFixed(3))+' إنش');
+function gNoBag(){try{return JSON.parse(localStorage.getItem('tkColNoBag')||'{}')}catch(e){return{}}}
+function isRubber(key,name){const p=S.noBag&&key in S.noBag?S.noBag[key]:null;if(p!==null)return!p;const g=gNoBag();if(key in g)return!g[key];return!/turf|grass|sod|concrete|asphalt|paver|عشب|نجيل|باطون|إسفلت/i.test(name||'')}
+function gColNames(){try{return JSON.parse(localStorage.getItem('tkColNames')||'{}')}catch(e){return{}}}
+function nameColors(){ // each piece goes to the nearest swatch of the sheet's colour legend; otherwise pieces of the same colour are grouped
+  // if the drawing itself is black & white but the markups are coloured (estimator's colour code), use the markup colours
+  const ps=S.pieces.filter(p=>p.rgbC||p.rgbA||p.ic),n=ps.length||1,drawCol=ps.filter(p=>sat(p.rgbC)>=0.2).length/n>=0.5,
+    icP=ps.filter(p=>p.ic),icOK=icP.length>=2&&new Set(icP.map(p=>p.ic.join())).size>=2,useA=!drawCol&&ps.filter(p=>sat(p.rgbA)>=0.25).length/n>=0.5;
+  S.colorSrc=drawCol?'drawing':icOK?'ic':useA?'markup':'drawing';
+  S.pieces.forEach(p=>{p.rgb=S.colorSrc==='ic'?(p.ic||p.rgbA||p.rgbC):S.colorSrc==='markup'?(p.rgbA||p.rgbC):(p.rgbC||p.rgbA||p.ic||null)});
+  const thr=S.colorSrc==='ic'?6:S.colorSrc==='markup'?45:28;
+  const leg=S.legend||[],cl=[];
+  S.pieces.forEach(p=>{if(!p.rgb){p.ckey='';p.cauto='بدون لون';return}
+    if(leg.length){let bd=70,bl=null;leg.forEach(l=>{const d=cdist(l.rgb,p.rgb);if(d<bd){bd=d;bl=l}});
+      if(bl){let c=cl.find(x=>x.leg===bl);if(!c){c={rgb:bl.rgb,ps:[],leg:bl,auto:bl.name};cl.push(c)}c.ps.push(p);return}}
+    let best=null,bd=thr;cl.forEach(c=>{if(c.leg)return;const d=cdist(c.rgb,p.rgb);if(d<bd){bd=d;best=c}});if(!best){best={rgb:p.rgb,ps:[]};cl.push(best)}best.ps.push(p)});
+  const gn=gColNames();const cnt={};cl.forEach(c=>{c.key=c.rgb.map(v=>(v>>3).toString(16).padStart(2,'0')).join('');if(!c.auto)c.auto=gn[c.key]||colorWord(c.rgb);cnt[c.auto]=(cnt[c.auto]||0)+1;c.key=c.rgb.map(v=>(v>>3).toString(16).padStart(2,'0')).join('')});
+  const k2={};cl.forEach(c=>{if(cnt[c.auto]>1){k2[c.auto]=(k2[c.auto]||0)+1;c.auto+=' '+k2[c.auto]}});
+  cl.forEach(c=>c.ps.forEach(p=>{p.ckey=c.key;p.cauto=c.auto}));applyColorNames()}
+function applyColorNames(){S.pieces.forEach(p=>{p.name=(S.cnames&&p.ckey&&S.cnames[p.ckey])||p.cauto||p.name||'بدون لون'})}
+function colorsCard(){const m=new Map();S.pieces.forEach(p=>{if(!p.ckey)return;const e=m.get(p.ckey)||{n:0,rgb:p.rgb,auto:p.cauto,name:p.name};e.n++;m.set(p.ckey,e)});if(!m.size)return '';
+  const leg=S.legend&&S.legend.length;
+  return '<div class="card"><details'+(leg?'':' open')+'><summary><b>ألوان القطع</b> <span class="mut">('+m.size+' لون · '+(leg?'الأسماء من مفتاح الألوان بالملف':'ما لقيت مفتاح ألوان مقروء بالملف، الأسماء تقريبية')+(S.colorSrc==='ic'||S.colorSrc==='markup'?' · الألوان من تلوين القياسات بالـ PDF':'')+')</span></summary><p class="mut">إذا اسم مش صح، اكتب الاسم الصحيح (مثلاً: Cardinal #1213) وبينحفظ لهالمشروع.</p>'+
+    [...m.entries()].map(([k,e])=>'<div class="kv"><span><span class="sw" style="background:rgb('+e.rgb+')"></span>'+e.n+' قطعة<br><label style="display:inline-flex;gap:4px;align-items:center;font-size:13px"><input type="checkbox" data-c="cbag" data-k="'+k+'"'+(isRubber(k,e.name)?' checked':'')+'> مطاط</label></span><input class="nm" style="max-width:62%;margin:2px 0" value="'+esc(e.name)+'" placeholder="'+esc(e.auto)+'" data-c="cname" data-k="'+k+'"></div>').join('')+'</details></div>'}
 
 // ================= spline (curve through points) =================
 function circTan(a,b,c,at){
@@ -569,7 +643,8 @@ function renderScaleBox(){
 function useBase(cn,cn2){
   S.W=cn.width;S.H=cn.height;S.base=cn;S.baseAnn=cn2||null;
   S.px=cn.getContext('2d',{willReadFrequently:true}).getImageData(0,0,S.W,S.H).data;
-  S.pxFt=null;S.refs=[];S.dims=[];S.polys=[];S.ann=[];S.pieces=[];S.spread=null;S.err=null;S.showOv=false;S.plabels=[];S.kappa=1;S.usePrinted=false;S.hi=null;S.pdfPage=null;S.origin=null;S.ang=0;clearTimeout(S.hiTimer);S.hiTok++;
+  S.pxA=cn2?cn2.getContext('2d',{willReadFrequently:true}).getImageData(0,0,S.W,S.H).data:null;
+  S.pxFt=null;S.refs=[];S.dims=[];S.polys=[];S.ann=[];S.pieces=[];S.spread=null;S.err=null;S.showOv=false;S.plabels=[];S.kappa=1;S.usePrinted=false;S.hi=null;S.pdfPage=null;S.origin=null;S.ang=0;S.cnames={};S.noBag={};S.thkC={};S.legend=[];clearTimeout(S.hiTimer);S.hiTok++;
   Object.keys(T).forEach(k=>T[k].reset&&T[k].reset());
   $('#empty').style.display='none';
 }
@@ -636,7 +711,9 @@ async function loadPdf(){
     S.pxPerPt=sc;S.plabels=findScaleLabels(tItems,(x,y)=>vp.convertToViewportPoint(x,y));
     S.dims=r.dims;S.polys=r.polys;S.ann=r.ann;S.pxFt=r.pxFt;S.err=r.err;S.spread=r.spread;calibratePrinted();
     if(!S.pxFt&&S.plabels.length){S.pxFt=S.pxPerPt*864/S.plabels[0].N;S.usePrinted=true}
+    {const icm=rawAnnotColors(S.buf);r.polys.forEach(p=>{p.ic=icm.byId[p.id]||icm.byTxt[String(p.txt).trim()]||null})}
     S.pieces=r.polys;S.pieces.forEach(pieceInfo);S.pieces.sort((a,b)=>b.sf-a.sf);
+    S.legend=findLegend(tItems,(x,y)=>vp.convertToViewportPoint(x,y));nestPieces();nameColors();
     S.snap=true;{const ck2=document.querySelector('[data-k="snap"]');if(ck2)ck2.checked=S.snap}
     S.showOv=annots.length>0&&(!withAnn||diffRatio(cn,cn2)<0.0004);
     const ck=document.querySelector('[data-k="showOv"]');if(ck)ck.checked=S.showOv;
@@ -730,8 +807,8 @@ T.areas={
     const pr=polyResult();
     if(pr){h+='<div class="card"><div class="mut">مساحة الحدود اللي رسمتها</div>'+(pr.noScale?'<div class="warn">حدد المقياس أول (⋯).</div>':'<div class="big">'+sf2(pr.sf,1)+'</div><div class="mut">المقياس: '+scaleNote(A.poly)+'</div><div class="kv"><span>المحيط</span><b>'+fFt(pr.per)+'</b></div><div class="acts"><button class="btn sm g" data-a="polyLog">حفظ بالسجل</button><button class="btn sm alt" data-a="polyMat">للمواد</button></div>')+'</div>'}
     if(S.pieces.length){
-      h+='<div class="card"><b>قطع الـ PDF</b> <span class="mut">(اضغط السطر: + ثم − ثم إلغاء)</span><table><tbody>'+
-        S.pieces.map((p,i)=>{const pd=p.sign?pieceDims(p):null;return '<tr data-a="pieceTap" data-i="'+i+'" style="background:'+(p.sign===1?'#DCEFE3':p.sign===-1?'#F6DAD3':'transparent')+'"><td><span class="sw" style="background:rgb('+p.rgb+')"></span>'+(p.name||'')+'</td><td>'+sf2(p.sf)+'</td><td style="font-size:20px;font-weight:700;text-align:center">'+(p.sign===1?'+':p.sign===-1?'−':'—')+'</td></tr>'+(pd?'<tr><td colspan="3" class="mut">العرض '+fFt(pd.W)+' × الارتفاع '+fFt(pd.H)+' · المحيط '+fFt(pd.P)+' · القطر المكافئ '+fFt(pd.eq)+(pd.circ>0.93?' <b>(تقريباً دائرة)</b>':'')+'</td></tr>':'')}).join('')+'</tbody></table></div>';
+      h+=colorsCard()+'<div class="card"><b>قطع الـ PDF</b> <span class="mut">(اضغط السطر: + ثم − ثم إلغاء)</span><table><tbody>'+
+        S.pieces.map((p,i)=>{const pd=p.sign?pieceDims(p):null;return '<tr data-a="pieceTap" data-i="'+i+'" style="background:'+(p.sign===1?'#DCEFE3':p.sign===-1?'#F6DAD3':'transparent')+'"><td><span class="sw" style="background:rgb('+p.rgb+')"></span>'+(p.name||'')+'</td><td>'+sf2(p.sf)+(p.total?'<br><span class="mut">المساحة الكلية</span>':(p.net!=null&&Math.abs(p.net-p.sf)>0.01?'<br><span class="mut">صافي '+p.net.toFixed(2)+'</span>':''))+'</td><td style="font-size:20px;font-weight:700;text-align:center">'+(p.sign===1?'+':p.sign===-1?'−':'—')+'</td></tr>'+(pd?'<tr><td colspan="3" class="mut">العرض '+fFt(pd.W)+' × الارتفاع '+fFt(pd.H)+' · المحيط '+fFt(pd.P)+' · القطر المكافئ '+fFt(pd.eq)+(pd.circ>0.93?' <b>(تقريباً دائرة)</b>':'')+'</td></tr>':'')}).join('')+'</tbody></table></div>';
     }else if(S.isPdf)h+='<div class="card warn">هالصفحة ما فيها مساحات مقاسة بالـ PDF. استخدم «رسم حدود» لحساب مساحة منطقة، أو جرّب صفحة ثانية.</div>';
     else h+='<div class="card mut">الصورة بدون مساحات مقاسة: استخدم «رسم حدود» وحدد المقياس من الإعدادات (⋯).</div>';
     return h;
@@ -1152,20 +1229,27 @@ T.slope={
 };
 
 // ================= TOOL: MATERIALS + LOG =================
-const M={area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
-try{S.log=JSON.parse(localStorage.getItem('tkLog')||'[]');const d=localStorage.getItem('tkDen');if(d)M.den=parseFloat(d)||M.den}catch(e){S.log=[]}
+const M={tu:'in',area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
+try{M.tu=localStorage.getItem('tkTU')||'in';S.log=JSON.parse(localStorage.getItem('tkLog')||'[]');const d=localStorage.getItem('tkDen');if(d)M.den=parseFloat(d)||M.den}catch(e){S.log=[]}
 const saveLog=()=>{try{localStorage.setItem('tkLog',JSON.stringify(S.log))}catch(e){}};
 function addLog(name,sf,n){S.log.push({name,sf,n});saveLog()}
-function matBags(sf){const T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100;if(!(T_>0&&D_>0&&B>0)||!(sf>0))return 0;return Math.ceil(sf*T_/12*28.3168*D_*(1+W_)/B-1e-6)}
-function matBind(sf){const W_=(M.waste||0)/100;return sf*M.thk/12*28.3168*M.den*(M.bind/100)*(1+W_)}
-function colorOrder(){const g={};S.pieces.forEach(p=>{if(!p.sign)return;const k=p.name||'بدون لون';g[k]=g[k]||{sf:0,rgb:p.rgb,n:0};g[k].sf+=p.sign*p.sf;g[k].n++});return Object.entries(g).filter(([k,v])=>v.sf>0.01).sort((a,b)=>b[1].sf-a[1].sf)}
+function matBags(sf,th){const T_=th>0?th:M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100;if(!(T_>0&&D_>0&&B>0)||!(sf>0))return 0;return Math.ceil(sf*T_/12*28.3168*D_*(1+W_)/B-1e-6)}
+function matBind(sf,th){const W_=(M.waste||0)/100;return sf*(th>0?th:M.thk)/12*28.3168*M.den*(M.bind/100)*(1+W_)}
+function colorOrder(){const sel=S.pieces.some(p=>p.sign),g={};S.pieces.forEach(p=>{if(sel?!p.sign:p.total)return;const k=p.name||'بدون لون';g[k]=g[k]||{sf:0,rgb:p.rgb,n:0,key:p.ckey};g[k].sf+=sel?p.sign*p.sf:(p.net!=null?p.net:p.sf);g[k].n++});return Object.entries(g).filter(([k,v])=>v.sf>0.01).sort((a,b)=>b[1].sf-a[1].sf)}
 function orderCard(){
-  if(!S.pieces.length)return '';const g=colorOrder();
-  if(!g.length)return '<div class="card"><b>طلبية حسب اللون</b><p class="mut">حدد القطع بتبويب «مساحات»: اضغط على القطعة مرة لتنضاف (+) ومرتين لتنطرح (−). وهون بتطلع الأكياس لكل لون لحالها.</p></div>';
-  let tb=0,ts=0;const rows=g.map(([k,v])=>{const bg=matBags(v.sf);tb+=bg;ts+=v.sf;return '<tr><td><span class="sw" style="background:rgb('+v.rgb+')"></span>'+esc(k)+'</td><td>'+sf2(v.sf)+'</td><td><b>'+bg+' كيس</b></td></tr>'}).join('');
-  return '<div class="card" id="ordCard"><b>طلبية حسب اللون</b> <span class="mut">(من القطع المحددة · سماكة '+M.thk+' إنش · هدر '+M.waste+'%)</span><table><tbody>'+rows+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(ts)+'</td><td><b>'+tb+' كيس</b></td></tr></tfoot></table><div class="mut">الغراء للكل تقريباً: '+matBind(ts).toFixed(0)+' كغ. كل لون بيتقرّب لكيس كامل.</div><div class="acts"><button class="btn alt sm" data-a="orderCopy">نسخ الطلبية</button></div></div>';
+  if(!S.pieces.length)return '';const g=colorOrder(),sel=S.pieces.some(p=>p.sign),tot=S.pieces.find(p=>p.total);if(!g.length)return '';
+  const mm=M.tu==='mm';let tb=0,ts=0,tr=0,bind=0;
+  const rows=g.map(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;ts+=v.sf;if(rb){tr+=v.sf;bind+=matBind(v.sf,th)}
+    const own=(S.thkC&&v.key in S.thkC)||(v.key in gColThk());
+    return '<tr><td><span class="sw" style="background:rgb('+v.rgb+')"></span>'+esc(k)+'</td><td>'+sf2(v.sf)+'</td><td>'+(rb?'<input type="number" step="any" inputmode="decimal" style="width:64px;padding:6px;border:1px solid '+(own?'#0B8457':'#CBD0C8')+';border-radius:8px;font:inherit" value="'+(+(mm?th*25.4:th).toFixed(mm?0:3))+'" data-c="cthk" data-k="'+v.key+'">':'—')+'</td><td>'+(rb?'<b>'+bg+' كيس</b>':'<span class="mut">مش مطاط</span>')+'</td></tr>'}).join('');
+  return '<div class="card" id="ordCard"><b>طلبية حسب اللون</b> <span class="mut">('+(sel?'من القطع المحددة':'تلقائي: كل قطع المخطط بالمساحة الصافية، يعني بعد طرح القطع اللي فوقها')+' · هدر '+M.waste+'%)</span>'+
+    '<div class="seg" style="margin:8px 0 4px"><button data-a="tunit" data-u="in" class="'+(mm?'':'on')+'">السماكة بالإنش</button><button data-a="tunit" data-u="mm" class="'+(mm?'on':'')+'">بالمليمتر</button></div>'+
+    '<table><thead><tr><th>اللون</th><th>المساحة</th><th>السماكة ('+(mm?'مم':'إنش')+')</th><th>الأكياس</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(ts)+'</td><td></td><td><b>'+tb+' كيس</b></td></tr></tfoot></table>'+
+    (!sel&&tot?'<div class="mut">المساحة الكلية المرسومة بالملف '+sf2(tot.sf)+' · مجموع الألوان '+sf2(ts)+' ('+(Math.abs(ts-tot.sf)/tot.sf*100<=1.5?'<span class="ok">✓ متطابق</span>':'<span class="bad">⚠ فرق '+(Math.abs(ts-tot.sf)/tot.sf*100).toFixed(1)+'%</span>')+')</div>':'')+
+    (tr<ts-0.01?'<div class="mut">مساحة المطاط بس: '+sf2(tr)+'</div>':'')+
+    '<div class="mut">السماكة الافتراضية '+thkTxt(M.thk)+' (من «عدد الأكياس» تحت). غيّر سماكة أي لون من الجدول، وبتنحفظ لهاللون (الخانة بتصير خضرا). الغراء للمطاط تقريباً: '+bind.toFixed(0)+' كغ. كل لون بيتقرّب لكيس كامل. حدد شو مش مطاط (عشب، باطون) من «ألوان القطع» بتبويب «مساحات».'+(sel?'':' لتحسب جزء بس، حدد القطع بتبويب «مساحات».')+'</div><div class="acts"><button class="btn alt sm" data-a="orderCopy">نسخ الطلبية</button></div></div>';
 }
-function orderText(){const g=colorOrder();if(!g.length)return '';let tb=0;return 'طلبية حسب اللون ('+M.thk+' إنش، هدر '+M.waste+'%):\n'+g.map(([k,v])=>{const bg=matBags(v.sf);tb+=bg;return '• '+k+': '+v.sf.toFixed(1)+' sf → '+bg+' كيس'}).join('\n')+'\nالمجموع: '+tb+' كيس ('+M.bag+' كغ)'}
+function orderText(){const g=colorOrder();if(!g.length)return '';let tb=0;return 'طلبية حسب اللون (هدر '+M.waste+'%):\n'+g.map(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;return '• '+k+': '+v.sf.toFixed(1)+' sf'+(rb?' · سماكة '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)')}).join('\n')+'\nالمجموع: '+tb+' كيس ('+M.bag+' كغ)'}
 function matsCalc(){
   const A_=parseFloat(M.area),T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100,Bn=M.bind/100,BD=M.bden;
   const litres=sf=>sf*T_/12*28.3168,bagsOf=sf=>Math.ceil(litres(sf)*D_*(1+W_)/B-1e-6);
@@ -1197,7 +1281,7 @@ function noFileCard(){const idx=projIndex().sort((a,b)=>b.updated-a.updated);
   '<div class="card"><button class="btn alt" data-a="guide">📘 دليل الاستخدام</button></div>'}
 
 // ================= projects: autosave, undo/redo, saved files =================
-const APP_VER='2.0';
+const APP_VER='2.3';
 const P={id:null,last:null,hist:[],fut:[],t:0,restoring:false};
 const fmtDate=t=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
 function projIndex(){try{return JSON.parse(localStorage.getItem('tkProj')||'[]')}catch(e){return[]}}
@@ -1206,11 +1290,11 @@ function projKey(name,size){let h=7;for(const c of name+'|'+size)h=((h<<5)-h+c.c
 function projTitle(){const e=projIndex().find(x=>x.id===P.id);return e?e.title:(S.name||'').replace(/\.[^.]+$/,'')}
 function countMeas(){return Ln.lines.filter(l=>l.pts.length>1).length+Ln.probes.length+SL.items.filter(x=>x.pts.length>1).length+C.pc.length+C.man.length+C.rings.filter(r=>r.pts.length>2).length+N.items.length+S.pieces.filter(p=>p.sign).length+(A.closed?1:0)}
 function snapState(){if(!S.base)return null;return JSON.stringify({
-  refs:S.refs,pxFt:S.dims.length?null:S.pxFt,signs:S.pieces.map(p=>p.sign||0),A:{poly:A.poly,closed:A.closed},
+  refs:S.refs,cn:S.cnames||{},nb:S.noBag||{},th:S.thkC||{},pxFt:S.dims.length?null:S.pxFt,signs:S.pieces.map(p=>p.sign||0),A:{poly:A.poly,closed:A.closed},
   Ln:{lines:Ln.lines,probes:Ln.probes,idc:Ln.idc,pid:Ln.pid},origin:S.origin,ang:S.ang,
   SL:{items:SL.items,idc:SL.idc,from:SL.from},C:{rings:C.rings,man:C.man,lms:C.lms,pc:C.pc,idc:C.idc,conc:C.conc},N:{items:N.items,idc:N.idc,sel:N.sel}})}
 function applyState(js){const o=JSON.parse(js);
-  S.refs=o.refs||[];if(o.pxFt&&!S.dims.length)S.pxFt=o.pxFt;
+  S.refs=o.refs||[];if(o.pxFt&&!S.dims.length)S.pxFt=o.pxFt;S.cnames=o.cn||{};S.noBag=o.nb||{};S.thkC=o.th||{};applyColorNames();
   S.pieces.forEach((p,i)=>{p.sign=(o.signs&&o.signs[i])||0});
   A.poly=(o.A&&o.A.poly)||[];A.closed=!!(o.A&&o.A.closed);
   const l=o.Ln||{};Ln.lines=l.lines||[];Ln.probes=l.probes||[];Ln.idc=l.idc||1;Ln.pid=l.pid||1;Ln.active=null;Ln.sel=null;
@@ -1258,7 +1342,7 @@ const GUIDE='<div class="card"><b>1. افتح الملف</b><p class="mut">«ف�
   '<div class="card"><b>3. الأطوال</b><p class="mut">تبويب «خطوط» ← «رسم خط». كبّر لحد ما «دقة البكسل» تصير 1 cm أو أقل، واضغط مطوّلاً لتظهر العدسة. إذا في بُعد مكتوب جنب الخط بتشوف الفرق ✓ أو ⚠.</p></div>'+
   '<div class="card"><b>4. المواد والتقرير</b><p class="mut">تبويب «مواد»: الأكياس لكل لون. وزر «📄 تقرير» بيعطيك صورة ونص تبعتهم على واتساب.</p></div>'+
   '<div class="card"><b>شغلك محفوظ</b><p class="mut">كل شي بينحفظ لحاله. ↶ ↷ فوق للتراجع والإعادة، و«مشاريعي» لترجع لأي شغل قديم. الأدوات الإضافية (دوائر، زوايا، ميلان) تحت «المزيد».</p></div>';
-const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
+const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• سماكة مختلفة لكل لون بطلبية المواد (بالإنش أو بالمليمتر)، مثلاً rubber mulch ‏50 مم، وبتنحفظ لهاللون.<br>• طلبية الألوان صارت تلقائية لكل المخطط: كل لون بمساحته الصافية (بعد طرح الدواير والقطع اللي فوقه)، ومع تأكيد إن المجموع بيطابق المساحة الكلية.<br>• ألوان القياسات بتنقرا من الملف نفسه، والاسم اللي بتكتبه للون بينحفظ للمشاريع الجاية.<br>• ألوان القطع صارت تنقرا من الرسمة نفسها، وأسماؤها من مفتاح الألوان المطبوع بالملف. وإذا الاسم مش صح بتعدّله من «ألوان القطع».<br>• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
 // ---------- field mode / tab bar ----------
 let wakeLk=null;
 async function applyField(){document.body.classList.toggle('field',!!S.field);try{localStorage.setItem('tkField',S.field?'1':'')}catch(e){}
@@ -1270,7 +1354,7 @@ function reportItems(){
   const out=[],H=t=>out.push({t,b:1}),Rw=t=>out.push({t:stripMk(t)});
   const sel=S.pieces.filter(p=>p.sign);
   if(sel.length){H('المساحات (من قطع الـ PDF)');let tot=0;sel.forEach(p=>{tot+=p.sign*p.sf;Rw((p.sign>0?'+ ':'− ')+(p.name||'')+' '+p.sf.toFixed(2)+' sf')});Rw('المجموع: '+tot.toFixed(2)+' sf')}
-  const g=colorOrder();if(g.length){H('طلبية المواد ('+M.thk+' إنش، هدر '+M.waste+'%، كيس '+M.bag+' كغ)');let tb=0,ts=0;g.forEach(([k,v])=>{const bg=matBags(v.sf);tb+=bg;ts+=v.sf;Rw(k+': '+v.sf.toFixed(1)+' sf → '+bg+' كيس')});Rw('المجموع: '+tb+' كيس · غراء ≈ '+matBind(ts).toFixed(0)+' كغ')}
+  const g=colorOrder();if(g.length){H('طلبية المواد (هدر '+M.waste+'%، كيس '+M.bag+' كغ)');let tb=0,bd=0;g.forEach(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;if(rb)bd+=matBind(v.sf,th);Rw(k+': '+v.sf.toFixed(1)+' sf'+(rb?' · '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)'))});Rw('المجموع: '+tb+' كيس · غراء ≈ '+bd.toFixed(0)+' كغ')}
   if(S.log.length){H('السجل');S.log.forEach(l=>Rw(l.name+': '+l.sf.toFixed(2)+' sf'))}
   const ls=Ln.lines.filter(l=>l.pts.length>1);if(ls.length){H('الأطوال');ls.forEach((l,i)=>{const m=metrics(l),k=scaleP(l.pts);Rw((l.name||'L'+(i+1))+': '+(k?fFt(m.total/k):Math.round(m.total)+' px'))})}
   if(Ln.probes.length){H('الإحداثيات (من نقطة الأصل)');Ln.probes.forEach(p=>{const c=coordOf(p.x,p.y);Rw(p.name+': X '+cX(c)+' · Y '+cY(c))})}
@@ -1321,6 +1405,7 @@ const ACT={
   repShare(){shareReport()},
   repText(){copyText(reportText())},
   orderCopy(){copyText(orderText())},
+  tunit(d){M.tu=d.u;try{localStorage.setItem('tkTU',d.u)}catch(e){}renderPanel();matsCalc()},
   guide(){$('#drawer').classList.remove('open');openSheet('دليل الاستخدام',GUIDE+'<button class="btn" data-a="shClose">يلا نبلّش</button>')},
   news(){$('#drawer').classList.remove('open');openSheet('شو الجديد',NEWS+'<button class="btn" data-a="shClose">تمام</button>')},
   mode(d){T[tool].mode=d.m;if(tool==='lines'&&d.m==='coord'&&S.base&&!S.origin)centerOrigin();renderToolbar();renderPanel();draw()},
@@ -1388,6 +1473,9 @@ const ACT={
 };
 function copyText(t){if(!t){alert('ما في شي للنسخ.');return}t=cmText(t).replace(/ · ([\d.]+ cm)/g,' ($1)');(navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>alert('اننسخ.'),()=>prompt('انسخ النص:',t))}
 const CHG={
+  cthk(v,d){const x=parseFloat(String(v).replace(',','.'));S.thkC=S.thkC||{};const g=gColThk();if(x>0){const inch=M.tu==='mm'?x/25.4:x;S.thkC[d.k]=inch;g[d.k]=inch}else{delete S.thkC[d.k];delete g[d.k]}try{localStorage.setItem('tkColThk',JSON.stringify(g))}catch(e){}renderPanel();matsCalc()},
+  cbag(v,d,t){S.noBag=S.noBag||{};S.noBag[d.k]=!t.checked;try{const g=gNoBag();g[d.k]=!t.checked;localStorage.setItem('tkColNoBag',JSON.stringify(g))}catch(e){}renderPanel();draw()},
+  cname(v,d){S.cnames=S.cnames||{};const t=String(v).trim();if(t)S.cnames[d.k]=t;else delete S.cnames[d.k];try{const g=gColNames();if(t)g[d.k]=t;else delete g[d.k];localStorage.setItem('tkColNames',JSON.stringify(g))}catch(e){}applyColorNames();renderPanel();draw()},
   nm(v,d){const lists={line:Ln.lines,sl:SL.items,pc:C.pc,ang:N.items},it=(lists[d.k]||[]).find(x=>x.id===+d.id);if(it){it.name=String(v).trim();renderPanel();draw()}},
   opt(v,d,t){S[d.k]=t.checked;if(d.k==='field'){applyField();renderAll();return}if(d.k==='allTabs'){applyAllTabs();document.querySelectorAll('[data-k="allTabs"]').forEach(x=>x.checked=S.allTabs);renderAll();return}if(d.k==='showAnn'){S.hi=null;scheduleHi()}if(d.k==='cm'){renderAll();return}draw()},
   page(v){if(!S.buf||!S.isPdf){alert('افتح ملف PDF أول.');return}saveNow();const p=Math.max(1,Math.min(S.pages||1,parseInt(v)||1));$('#pageIn').value=p;if(p===S.page&&S.base)return;S.page=p;loadPdf()},
@@ -1411,7 +1499,7 @@ try{if(!localStorage.getItem('tkSeen')){localStorage.setItem('tkSeen','1');ACT.g
 </script>
 <script>
 if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});   // ask the phone not to clear the saved copy and the projects
+if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});
 </script>
 </body>
 </html>
