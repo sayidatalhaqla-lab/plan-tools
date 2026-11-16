@@ -274,6 +274,42 @@ function parseArea(t){const m=String(t||'').match(/([\d.,]+)\s*(sf|sq\.?\s*ft|sq
 const toPairs=v=>typeof v[0]==='number'?v.reduce((r,x,i)=>(i%2?r[r.length-1].push(x):r.push([x]),r),[]):v.map(p=>Array.isArray(p)?p:[p.x,p.y]);
 function shoelace(p){let a=0;for(let i=0;i<p.length;i++){const q=p[(i+1)%p.length];a+=p[i][0]*q[1]-q[0]*p[i][1]}return Math.abs(a)/2}
 function inPoly(x,y,p){let c=false;for(let i=0,j=p.length-1;i<p.length;j=i++){if(((p[i][1]>y)!==(p[j][1]>y))&&(x<(p[j][0]-p[i][0])*(y-p[i][1])/(p[j][1]-p[i][1])+p[i][0]))c=!c}return c}
+// ================= file study: what the PDF itself says (text notes, markups, dimensions) =================
+function textLines(items){
+  const w=(items||[]).map(it=>{const t=String(it.str||'').trim(),tr=it.transform||[1,0,0,1,0,0],fs=Math.hypot(tr[2],tr[3])||Math.abs(tr[3])||8;return t?{t,x:tr[4],y:tr[5],fs,x1:tr[4]+(it.width||t.length*fs*0.5)}:null}).filter(Boolean);
+  w.sort((a,b)=>(b.y-a.y)||(a.x-b.x));const out=[];
+  for(const a of w){const L=out.find(l=>Math.abs(l.y-a.y)<a.fs*0.45&&a.x>=l.x1-a.fs*0.6&&a.x-l.x1<a.fs*2.5);
+    if(L){L.t+=' '+a.t;L.x1=Math.max(L.x1,a.x1)}else out.push({t:a.t,x:a.x,y:a.y,fs:a.fs,x1:a.x1})}
+  return out.map(l=>({...l,t:l.t.replace(/\s+/g,' ').trim()})).filter(l=>l.t.length>1&&!/^[#\W_]+$/.test(l.t)&&!/(.)\1{5,}/.test(l.t))}
+function buildStudy(r,items){
+  const st={cnt:r.cnt||{},dims:[],marks:[],sections:[],flags:[],hasText:false,title:[]};
+  st.dims=[...new Set(r.dims.map(d=>d.txt).filter(Boolean))];
+  st.marks=[...new Set(r.ann.filter(a=>a.k==='rect'&&a.txt).map(a=>a.txt.replace(/\s+/g,' ').trim()))];
+  const L=textLines(items);st.hasText=L.length>5;
+  const isHead=l=>l.t.length<48&&/\b(NOTES?|LEGEND|SCOPE OF WORK|SCHEDULE|SPECIFICATIONS?|KEY PLAN|INSTRUCTION|DESCRIPTION)\b/i.test(l.t)&&l.t===l.t.toUpperCase();
+  const used=new Set();
+  L.forEach((h,hi)=>{if(!isHead(h))return;const col=L.filter((l,i)=>i!==hi&&l.y<h.y&&l.x>=h.x-h.fs*2&&l.x<h.x+h.fs*45).sort((a,b)=>b.y-a.y);
+    const body=[];let lastY=h.y;for(const l of col){if(lastY-l.y>Math.max(l.fs,h.fs)*3.2)break;if(isHead(l))break;body.push(l.t);used.add(l);lastY=l.y;if(body.length>=40)break}
+    if(body.length)st.sections.push({h:h.t,lines:body})});
+  const TB=/^(PROJECT( NAME| NO\.?| NUMBER| ADDRESS)?|DRAWING (TITLE|NO\.?|NUMBER)|SHEET( NO\.?)?|SCALE|DATE|DRAWN( BY)?|CHECKED( BY)?|CLIENT|REVISION|ISSUED? (FOR|TO))\s*:?/i;
+  L.forEach((l,i)=>{if(TB.test(l.t)&&l.t.length<60){const nx=L.filter(m=>m.y<l.y&&l.y-m.y<l.fs*3.5&&Math.abs(m.x-l.x)<l.fs*12).sort((a,b)=>b.y-a.y)[0];const v=/:\s*\S/.test(l.t)?'':(nx&&!TB.test(nx.t)?nx.t:'');if(v||/:\s*\S/.test(l.t))st.title.push(l.t.replace(/:$/,'')+(v?': '+v:''))}});
+  const FL=/confirm|verify|t\.?b\.?d|by others|not in (the )?scope|n\.?i\.?c\b|do not|existing to remain|protect|revis|delete|hold|caution|warning|slope|drain|catch basin|manhole|underpin|refer to (civil|structural)|please/i;
+  st.flags=[...new Set([...st.marks,...L.map(l=>l.t)].filter(t=>FL.test(t)).map(t=>t.slice(0,140)))].slice(0,25);
+  return st}
+function studyItems(){
+  const st=S.study;if(!st)return[];const out=[],H=t=>out.push({t,b:1}),Rw=t=>out.push({t:String(t).slice(0,150)});
+  H('دراسة الملف');
+  Rw('الملف: '+S.name+(S.isPdf?' · '+S.pages+' صفحة · هالدراسة للصفحة '+S.page:''));
+  const c=st.cnt,nm={Polygon:'مساحة',Line:'بُعد',FreeText:'ملاحظة مكتوبة',Square:'مربع',Circle:'دائرة',PolyLine:'خط متعدد',Text:'ملاحظة لاصقة',Ink:'رسم يدوي',Stamp:'ختم',Highlight:'تظليل'};
+  Rw('القياسات والملاحظات المرسومة فوق المخطط: '+(Object.entries(c).filter(([k])=>!/^(Popup|Link|Widget)$/.test(k)).map(([k,v])=>v+' '+(nm[k]||k)).join('، ')||'ما في'));
+  if(S.plabels&&S.plabels.length)Rw('المقاييس المطبوعة: '+[...new Set(S.plabels.map(l=>'1:'+l.N))].join('، '));
+  if(st.title.length){H('معلومات المخطط');st.title.slice(0,12).forEach(Rw)}
+  if(st.marks.length){H('ملاحظات المقيّس (مكتوبة على القياسات)');st.marks.slice(0,20).forEach(t=>Rw('• '+t))}
+  if(st.dims.length)Rw('الأبعاد المقاسة ('+st.dims.length+'): '+st.dims.slice(0,30).join(' · '));
+  st.sections.forEach(sec=>{H(sec.h);sec.lines.forEach(Rw)});
+  if(st.flags.length){H('نقاط بدها انتباه');st.flags.forEach(t=>Rw('⚠ '+t))}
+  if(!st.hasText)Rw('ملاحظة: كتابة الرسمة نفسها (الملاحظات، المفتاح، جدول المراجعات) محفوظة كرسم مش كنص، فالبرنامج ما بيقدر يقراها. اقراها من الرسمة نفسها.');
+  return out}
 function readPdf(annots,toPx){
   const dims=[],polys=[],ann=[],cnt={};
   for(const a of annots){
@@ -644,7 +680,7 @@ function useBase(cn,cn2){
   S.W=cn.width;S.H=cn.height;S.base=cn;S.baseAnn=cn2||null;
   S.px=cn.getContext('2d',{willReadFrequently:true}).getImageData(0,0,S.W,S.H).data;
   S.pxA=cn2?cn2.getContext('2d',{willReadFrequently:true}).getImageData(0,0,S.W,S.H).data:null;
-  S.pxFt=null;S.refs=[];S.dims=[];S.polys=[];S.ann=[];S.pieces=[];S.spread=null;S.err=null;S.showOv=false;S.plabels=[];S.kappa=1;S.usePrinted=false;S.hi=null;S.pdfPage=null;S.origin=null;S.ang=0;S.cnames={};S.noBag={};S.thkC={};S.legend=[];clearTimeout(S.hiTimer);S.hiTok++;
+  S.pxFt=null;S.refs=[];S.dims=[];S.polys=[];S.ann=[];S.pieces=[];S.spread=null;S.err=null;S.showOv=false;S.plabels=[];S.kappa=1;S.usePrinted=false;S.hi=null;S.pdfPage=null;S.origin=null;S.ang=0;S.cnames={};S.noBag={};S.thkC={};S.legend=[];S.study=null;clearTimeout(S.hiTimer);S.hiTok++;
   Object.keys(T).forEach(k=>T[k].reset&&T[k].reset());
   $('#empty').style.display='none';
 }
@@ -714,6 +750,7 @@ async function loadPdf(){
     {const icm=rawAnnotColors(S.buf);r.polys.forEach(p=>{p.ic=icm.byId[p.id]||icm.byTxt[String(p.txt).trim()]||null})}
     S.pieces=r.polys;S.pieces.forEach(pieceInfo);S.pieces.sort((a,b)=>b.sf-a.sf);
     S.legend=findLegend(tItems,(x,y)=>vp.convertToViewportPoint(x,y));nestPieces();nameColors();
+    try{S.study=buildStudy(r,tItems)}catch(e){S.study=null}
     S.snap=true;{const ck2=document.querySelector('[data-k="snap"]');if(ck2)ck2.checked=S.snap}
     S.showOv=annots.length>0&&(!withAnn||diffRatio(cn,cn2)<0.0004);
     const ck=document.querySelector('[data-k="showOv"]');if(ck)ck.checked=S.showOv;
@@ -736,8 +773,11 @@ async function loadPdf(){
 const A={mode:'pan',poly:[],closed:false,smooth:true,sel:-1,px:0};
 const nextSign=s=>s===0?1:s===1?-1:0;
 // hoses laid on the ground along the outline (default 3 m each)
-function hoseTxt(perM,rM){const L=M.hose>0?M.hose:3,n=Math.ceil(perM/L-1e-9),full=Math.floor(perM/L+1e-9),rem=perM-full*L;
-  return '🟢 المحيط '+perM.toFixed(2)+' م ← <b>'+n+' نربيش</b> (كل واحد '+L+' م)'+(rem>0.05&&full<n?': '+full+' كاملين + '+rem.toFixed(2)+' م من الأخير':'')+(rM?' · نصف القطر '+rM.toFixed(2)+' م':'')}
+const ORD=['','الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر'];
+const lenTxt=m=>m<1?Math.round(m*100)+' سم':m.toFixed(2)+' م';
+function hoseCalc(perM){const L=M.hose>0?M.hose:3,n=Math.ceil(perM/L-1e-9),full=Math.floor(perM/L+1e-9),rem=perM-full*L;return{L,n,full,rem,part:rem>0.005&&full<n}}
+function hoseTxt(perM,rM){const h=hoseCalc(perM);
+  return '🟢 المحيط '+perM.toFixed(2)+' م ← <b>'+h.n+' نربيش</b> (كل واحد '+h.L+' م)'+(h.part?': <b>'+h.full+' كاملين + '+lenTxt(h.rem)+' بس من النربيش '+(ORD[h.n]||'رقم '+h.n)+'</b>':': كلهم كاملين')+(rM?' · نصف القطر '+rM.toFixed(2)+' م':'')}
 const hoseIn=()=>'<div class="kv"><span>طول النربيش للتوقيع على الأرض</span><span><input type="number" step="any" inputmode="decimal" style="width:64px;padding:6px;border:1px solid #CBD0C8;border-radius:8px;font:inherit" value="'+(M.hose||3)+'" data-c="hose"> م</span></div>';
 function pieceDims(p){ // exact: from the polygon's own vertices; scale from its own measured area
   const k=Math.sqrt(p.ap/p.sf),n=p.pts.length;let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,per=0;
@@ -802,7 +842,7 @@ T.areas={
       S.pieces.forEach(p=>{if(!p.sign)return;c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.fillStyle=p.sign===1?'#14B86055':'#E5393555';c.fill();c.lineWidth=2.5/v.s;c.strokeStyle=p.sign===1?'#0A7A3C':'#B3261E';c.stroke()});
       S.pieces.forEach(p=>{if(!p.hose||!p.lp)return;const pd=pieceDims(p),per=pd.P*0.3048,Lh=M.hose>0?M.hose:3,n=Math.ceil(per/Lh-1e-9);
         c.beginPath();p.pts.forEach((q,i)=>i?c.lineTo(q[0],q[1]):c.moveTo(q[0],q[1]));c.closePath();c.setLineDash([10/v.s,6/v.s]);c.lineWidth=3/v.s;c.strokeStyle='#0B8457';c.stroke();c.setLineDash([]);
-        L.push([p.lp[0],p.lp[1],n+' نربيش','#0B8457',-13]);L.push([p.lp[0],p.lp[1],'محيط '+per.toFixed(1)+' م'+(pd.circ>0.93?' · نق '+(pd.eq/2*0.3048).toFixed(2)+' م':''),'#1F2A44',11])});
+        const hc=hoseCalc(per);L.push([p.lp[0],p.lp[1],n+' نربيش'+(hc.part?' (الأخير '+lenTxt(hc.rem)+' بس)':''),'#0B8457',-13]);L.push([p.lp[0],p.lp[1],'محيط '+per.toFixed(1)+' م'+(pd.circ>0.93?' · نق '+(pd.eq/2*0.3048).toFixed(2)+' م':''),'#1F2A44',11])});
       if(S.showLbl)S.pieces.forEach(p=>{if(p.hose)return;if(p.lp&&p.ap*v.s*v.s>=1800)L.push([p.lp[0],p.lp[1],(p.sign===1?'+ ':p.sign===-1?'− ':'')+p.txt,p.sign===1?'#0A7A3C':p.sign===-1?'#B3261E':'#000000',0])});
     }
     if(A.poly.length){const P=polyPts();c.beginPath();pathOn(c,P,A.smooth,A.closed);c.lineWidth=2.5/v.s;c.strokeStyle='#E0642A';c.stroke();
@@ -1294,7 +1334,7 @@ function noFileCard(){const idx=projIndex().sort((a,b)=>b.updated-a.updated);
   '<div class="card"><button class="btn alt" data-a="guide">📘 دليل الاستخدام</button></div>'}
 
 // ================= projects: autosave, undo/redo, saved files =================
-const APP_VER='2.5';
+const APP_VER='2.7';
 const P={id:null,last:null,hist:[],fut:[],t:0,restoring:false};
 const fmtDate=t=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
 function projIndex(){try{return JSON.parse(localStorage.getItem('tkProj')||'[]')}catch(e){return[]}}
@@ -1355,7 +1395,7 @@ const GUIDE='<div class="card"><b>1. افتح الملف</b><p class="mut">«ف�
   '<div class="card"><b>3. الأطوال</b><p class="mut">تبويب «خطوط» ← «رسم خط». كبّر لحد ما «دقة البكسل» تصير 1 cm أو أقل، واضغط مطوّلاً لتظهر العدسة. إذا في بُعد مكتوب جنب الخط بتشوف الفرق ✓ أو ⚠.</p></div>'+
   '<div class="card"><b>4. المواد والتقرير</b><p class="mut">تبويب «مواد»: الأكياس لكل لون. وزر «📄 تقرير» بيعطيك صورة ونص تبعتهم على واتساب.</p></div>'+
   '<div class="card"><b>شغلك محفوظ</b><p class="mut">كل شي بينحفظ لحاله. ↶ ↷ فوق للتراجع والإعادة، و«مشاريعي» لترجع لأي شغل قديم. الأدوات الإضافية (دوائر، زوايا، ميلان) تحت «المزيد».</p></div>';
-const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• زر «🟢 نباريش» بتبويب «مساحات»: بتضغط على الدائرة، وبيطلع عليها بالرسم كم نربيش بدك.<br>• النباريش: لما تحدد قطعة (دائرة أو أي شكل) بيطلع محيطها بالمتر وكم نربيش بدك لترسمها على الأرض (3 م افتراضياً وبتغيّره)، ونصف القطر للدوائر.<br>• سماكة مختلفة لكل لون بطلبية المواد (بالإنش أو بالمليمتر)، مثلاً rubber mulch ‏50 مم، وبتنحفظ لهاللون.<br>• طلبية الألوان صارت تلقائية لكل المخطط: كل لون بمساحته الصافية (بعد طرح الدواير والقطع اللي فوقه)، ومع تأكيد إن المجموع بيطابق المساحة الكلية.<br>• ألوان القياسات بتنقرا من الملف نفسه، والاسم اللي بتكتبه للون بينحفظ للمشاريع الجاية.<br>• ألوان القطع صارت تنقرا من الرسمة نفسها، وأسماؤها من مفتاح الألوان المطبوع بالملف. وإذا الاسم مش صح بتعدّله من «ألوان القطع».<br>• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
+const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• التقرير فيه «دراسة الملف»: الملاحظات المكتوبة بالـ PDF (إذا كانت نص)، وملاحظات المقيّس، والأبعاد، والمقاييس، ونقاط بدها انتباه.<br>• النباريش صارت أوضح: «3 كاملين + 43 سم بس من النربيش الرابع».<br>• زر «🟢 نباريش» بتبويب «مساحات»: بتضغط على الدائرة، وبيطلع عليها بالرسم كم نربيش بدك.<br>• النباريش: لما تحدد قطعة (دائرة أو أي شكل) بيطلع محيطها بالمتر وكم نربيش بدك لترسمها على الأرض (3 م افتراضياً وبتغيّره)، ونصف القطر للدوائر.<br>• سماكة مختلفة لكل لون بطلبية المواد (بالإنش أو بالمليمتر)، مثلاً rubber mulch ‏50 مم، وبتنحفظ لهاللون.<br>• طلبية الألوان صارت تلقائية لكل المخطط: كل لون بمساحته الصافية (بعد طرح الدواير والقطع اللي فوقه)، ومع تأكيد إن المجموع بيطابق المساحة الكلية.<br>• ألوان القياسات بتنقرا من الملف نفسه، والاسم اللي بتكتبه للون بينحفظ للمشاريع الجاية.<br>• ألوان القطع صارت تنقرا من الرسمة نفسها، وأسماؤها من مفتاح الألوان المطبوع بالملف. وإذا الاسم مش صح بتعدّله من «ألوان القطع».<br>• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
 // ---------- field mode / tab bar ----------
 let wakeLk=null;
 async function applyField(){document.body.classList.toggle('field',!!S.field);try{localStorage.setItem('tkField',S.field?'1':'')}catch(e){}
@@ -1366,7 +1406,7 @@ function applyAllTabs(){document.body.classList.toggle('alltabs',!!S.allTabs);tr
 function reportItems(){
   const out=[],H=t=>out.push({t,b:1}),Rw=t=>out.push({t:stripMk(t)});
   const sel=S.pieces.filter(p=>p.sign);
-  if(sel.length){H('المساحات (من قطع الـ PDF)');let tot=0;sel.forEach(p=>{tot+=p.sign*p.sf;const pd=pieceDims(p),per=pd.P*0.3048,L=M.hose||3;Rw((p.sign>0?'+ ':'− ')+(p.name||'')+' '+p.sf.toFixed(2)+' sf · محيط '+per.toFixed(2)+' م = '+Math.ceil(per/L-1e-9)+' نربيش ('+L+' م)'+(pd.circ>0.93?' · نصف القطر '+(pd.eq/2*0.3048).toFixed(2)+' م':''))});Rw('المجموع: '+tot.toFixed(2)+' sf')}
+  if(sel.length){H('المساحات (من قطع الـ PDF)');let tot=0;sel.forEach(p=>{tot+=p.sign*p.sf;const pd=pieceDims(p),per=pd.P*0.3048,L=M.hose||3;const hc=hoseCalc(per);Rw((p.sign>0?'+ ':'− ')+(p.name||'')+' '+p.sf.toFixed(2)+' sf · محيط '+per.toFixed(2)+' م = '+hc.n+' نربيش ('+L+' م'+(hc.part?'، الأخير '+lenTxt(hc.rem)+' بس':'')+')'+(pd.circ>0.93?' · نصف القطر '+(pd.eq/2*0.3048).toFixed(2)+' م':''))});Rw('المجموع: '+tot.toFixed(2)+' sf')}
   const g=colorOrder();if(g.length){H('طلبية المواد (هدر '+M.waste+'%، كيس '+M.bag+' كغ)');let tb=0,bd=0;g.forEach(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;if(rb)bd+=matBind(v.sf,th);Rw(k+': '+v.sf.toFixed(1)+' sf'+(rb?' · '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)'))});Rw('المجموع: '+tb+' كيس · غراء ≈ '+bd.toFixed(0)+' كغ')}
   if(S.log.length){H('السجل');S.log.forEach(l=>Rw(l.name+': '+l.sf.toFixed(2)+' sf'))}
   const ls=Ln.lines.filter(l=>l.pts.length>1);if(ls.length){H('الأطوال');ls.forEach((l,i)=>{const m=metrics(l),k=scaleP(l.pts);Rw((l.name||'L'+(i+1))+': '+(k?fFt(m.total/k):Math.round(m.total)+' px'))})}
@@ -1375,7 +1415,7 @@ function reportItems(){
   const sl=SL.items.filter(x=>x.pts.length>1);if(sl.length){H('الميلان');sl.forEach((it,i)=>slSegs(it).forEach(sg=>Rw((it.name||'S'+(i+1))+' '+nameFor(sg.i)+'→'+nameFor(sg.i+1)+': '+slAngle(sg.inf).toFixed(1)+'° · ميل '+(sg.inf.slope===null?'عامودي':sg.inf.slope.toFixed(1)+'%'))))}
   if(N.items.length){H('الزوايا');N.items.forEach((it,i)=>{const P_=it.pts.map(p=>[p.x,p.y]);if(it.t==='a3'){const a=angle3(P_[0],P_[1],P_[2]);if(a)Rw((it.name||'زاوية '+(i+1))+': '+a.theta.toFixed(1)+'° ('+angKind(a.theta)+')')}else{const a=angle4(...P_);if(a)Rw((it.name||'زاوية '+(i+1))+': الحادة '+a.acute.toFixed(1)+'° · المنفرجة '+a.obtuse.toFixed(1)+'°')}})}
   if(!out.length)H('ما في قياسات بعد.');
-  return out}
+  return out.concat(studyItems())}
 function reportText(){return projTitle()+'\n'+S.name+(S.isPdf?' · صفحة '+S.page:'')+' · '+new Date().toLocaleDateString()+'\n\n'+reportItems().map(x=>x.b?'【'+x.t+'】':x.t).join('\n')}
 function makeReport(){
   if(!S.base)return null;saveNow();
