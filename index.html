@@ -1349,14 +1349,31 @@ T.slope={
 };
 
 // ================= TOOL: MATERIALS + LOG =================
-const M={bt:'ali',aliBags:4,aliKg:19.09,topGalBag:1.25,drumGal:55,hose:3,tu:'in',area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
+const M={temp:'',bt:'ali',aliBags:4,aliKg:19.09,topGalBag:1.25,drumGal:55,hose:3,tu:'in',area:'',thk:0.75,bag:20,waste:10,den:0.57,bind:22,bden:1.1};
 try{Object.assign(M,JSON.parse(localStorage.getItem('tkBind')||'{}'));M.tu=localStorage.getItem('tkTU')||'in';M.hose=parseFloat(localStorage.getItem('tkHose'))||3;S.log=JSON.parse(localStorage.getItem('tkLog')||'[]');const d=localStorage.getItem('tkDen');if(d)M.den=parseFloat(d)||M.den}catch(e){S.log=[]}
 M.refs=[];try{M.refs=JSON.parse(localStorage.getItem('tkRefs')||'[]')}catch(e){M.refs=[]}
 try{if(!localStorage.getItem('tkRefSeed1')){M.refs.push({name:'شغل 18/11/2026',sf:698.54,thk:0.25,bags:32,bag:20,t:Date.now()});localStorage.setItem('tkRefSeed1','1');localStorage.setItem('tkRefs',JSON.stringify(M.refs))}}catch(e){}
 const refVol=r=>r.sf*r.thk/12*28.3168;                                      // litres
 // density that reproduces what was really used once the waste % is added again
 function refsDensity(){const w=1+(M.waste||0)/100;let kg=0,v=0;M.refs.forEach(r=>{kg+=r.bags*r.bag;v+=refVol(r)*w});return v>0?kg/v:null}
-function applyRefs(){const d=refsDensity();if(d)M.den=d}
+const hasT=t=>typeof t==='number'&&isFinite(t);
+function denInfo(T){const w=1+(M.waste||0)/100,R_=M.refs.map(r=>({d:r.bags*r.bag/(refVol(r)*w),v:refVol(r),t:hasT(r.temp)?r.temp:null}));
+  if(!R_.length)return null;const avg=R_.reduce((a,r)=>a+r.d*r.v,0)/R_.reduce((a,r)=>a+r.v,0);
+  if(!hasT(T))return{d:avg,how:'avg'};
+  const RT=R_.filter(r=>r.t!==null);
+  if(RT.length>=2){const ts=RT.map(r=>r.t),lo=Math.min(...ts),hi=Math.max(...ts);
+    if(hi-lo>=5){const W=RT.reduce((a,r)=>a+r.v,0),mt=RT.reduce((a,r)=>a+r.v*r.t,0)/W,md=RT.reduce((a,r)=>a+r.v*r.d,0)/W;let sxx=0,sxy=0;
+      RT.forEach(r=>{sxx+=r.v*(r.t-mt)**2;sxy+=r.v*(r.t-mt)*(r.d-md)});const b=sxx?sxy/sxx:0;
+      let d=md+b*(T-mt);const dl=Math.min(...RT.map(r=>r.d))*0.85,dh=Math.max(...RT.map(r=>r.d))*1.15;d=Math.max(dl,Math.min(dh,d));   // a straight line through the references
+      return{d,how:'fit',n:RT.length,out:T<lo-5||T>hi+5}}}
+  const near=RT.filter(r=>Math.abs(r.t-T)<=5);
+  if(near.length)return{d:near.reduce((a,r)=>a+r.d*r.v,0)/near.reduce((a,r)=>a+r.v,0),how:'near',n:near.length};
+  return{d:avg,how:'none'}}
+function applyRefs(){const i=denInfo(M.temp);M.denHow=i;if(i)M.den=i.d}
+function denNote(){const i=M.denHow;if(!i)return '';if(i.how==='avg')return 'الكثافة: متوسط كل مراجعك'+(M.refs.length?' ('+M.refs.length+')':'')+'. اكتب حرارة الجو إذا بدك الحساب حسب الحرارة.';
+  if(i.how==='fit')return '🌡 على حرارة '+M.temp+'°C: من خط اتجاه '+i.n+' مراجع بحرارات مختلفة'+(i.out?' ⚠ الحرارة برّا مراجعك، فالرقم تقريبي':'')+'.';
+  if(i.how==='near')return '🌡 على حرارة '+M.temp+'°C: من '+i.n+' مرجع بحرارة قريبة (±5°).';
+  return '🌡 ما في مرجع بحرارة قريبة من '+M.temp+'°C، فاستعملت متوسط كل المراجع. أضف مراجع مع حرارتها ليصير الحساب حسب الحرارة.'}
 applyRefs();
 const saveRefs=()=>{try{localStorage.setItem('tkRefs',JSON.stringify(M.refs))}catch(e){}};
 const saveLog=()=>{try{localStorage.setItem('tkLog',JSON.stringify(S.log))}catch(e){}};
@@ -1379,11 +1396,11 @@ function orderCard(){
 }
 function refsCard(){const mm=M.tu==='mm',w=1+(M.waste||0)/100,d=refsDensity();
   return '<div class="card" style="margin:10px 0 0"><b>مراجع من شغل حقيقي</b> <span class="mut">(المساحة + السماكة + الأكياس الفعلية)</span>'+
-    (M.refs.length?'<table><thead><tr><th>الشغل</th><th>المساحة</th><th>السماكة</th><th>أكياس</th><th>كغ/لتر</th><th></th></tr></thead><tbody>'+M.refs.map((r,i)=>'<tr><td>'+esc(r.name||'')+'</td><td>'+sf2(r.sf)+'</td><td>'+thkTxt(r.thk)+'</td><td>'+r.bags+' × '+r.bag+' كغ</td><td>'+(r.bags*r.bag/(refVol(r)*w)).toFixed(3)+'</td><td><button class="btn alt sm" style="width:auto" data-a="refDel" data-i="'+i+'">✕</button></td></tr>').join('')+'</tbody></table>'+
-      '<div class="mut">الكثافة المعتمدة هلق: <b>'+(d?d.toFixed(3):'—')+' كغ/لتر</b> (متوسط المراجع حسب الحجم، ومحسوبة بعد طرح الهدر '+M.waste+'% لأنه بينضاف بالحساب). يعني لو حسبت نفس الشغل بالبرنامج بيطلعلك نفس عدد الأكياس اللي استعملته.</div>':'<p class="mut">ما في مراجع. أضف شغل خلّصته، فبتصير الكثافة من شغلك الحقيقي.</p>')+
+    (M.refs.length?'<table><thead><tr><th>الشغل</th><th>المساحة</th><th>السماكة</th><th>أكياس</th><th>°C</th><th>كغ/لتر</th><th></th></tr></thead><tbody>'+M.refs.map((r,i)=>'<tr><td>'+esc(r.name||'')+'</td><td>'+sf2(r.sf)+'</td><td>'+thkTxt(r.thk)+'</td><td>'+r.bags+' × '+r.bag+' كغ</td><td><input type="number" step="any" inputmode="decimal" style="width:52px;padding:4px;border:1px solid #CBD0C8;border-radius:6px;font:inherit" placeholder="—" value="'+(hasT(r.temp)?r.temp:'')+'" data-c="rtemp" data-i="'+i+'"></td><td>'+(r.bags*r.bag/(refVol(r)*w)).toFixed(3)+'</td><td><button class="btn alt sm" style="width:auto" data-a="refDel" data-i="'+i+'">✕</button></td></tr>').join('')+'</tbody></table>'+
+      '<div class="mut">الكثافة المعتمدة هلق: <b>'+M.den.toFixed(3)+' كغ/لتر</b> · '+denNote()+' (المراجع موزونة حسب الحجم، ومحسوبة بعد طرح الهدر '+M.waste+'% لأنه بينضاف بالحساب). يعني لو حسبت نفس الشغل بالبرنامج بيطلعلك نفس عدد الأكياس اللي استعملته.</div>':'<p class="mut">ما في مراجع. أضف شغل خلّصته، فبتصير الكثافة من شغلك الحقيقي.</p>')+
     '<details><summary>➕ أضف مرجع جديد</summary><div class="row"><div><label>اسم الشغل (اختياري)</label><input type="text" id="rName" placeholder="مثلاً: مدرسة St Mary"></div><div><label>المساحة (sf)</label><input type="number" id="rArea" step="any" inputmode="decimal"></div></div>'+
     '<div class="row"><div><label>السماكة ('+(mm?'مم':'إنش')+')</label><input type="number" id="rThk" step="any" inputmode="decimal"></div><div><label>الأكياس المستعملة</label><input type="number" id="rBags" step="any" inputmode="decimal"></div></div>'+
-    '<div class="row"><div><label>وزن الكيس (كغ)</label><input type="number" id="rBag" step="any" inputmode="decimal" value="'+M.bag+'"></div><div></div></div><button class="btn" data-a="refAdd">أضف واعتمد</button></details></div>'}
+    '<div class="row"><div><label>وزن الكيس (كغ)</label><input type="number" id="rBag" step="any" inputmode="decimal" value="'+M.bag+'"></div><div><label>حرارة الجو وقتها °C (اختياري)</label><input type="number" id="rTemp" step="any" inputmode="decimal"></div></div><button class="btn" data-a="refAdd">أضف واعتمد</button></details></div>'}
 function orderText(){const g=colorOrder();if(!g.length)return '';let tb=0;return 'طلبية حسب اللون (هدر '+M.waste+'%):\n'+g.map(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;return '• '+k+': '+v.sf.toFixed(1)+' sf'+(rb?' · سماكة '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)')}).join('\n')+'\nالمجموع: '+tb+' كيس ('+M.bag+' كغ)\nالغراء: '+bindTxt(tb)}
 function matsCalc(){
   const A_=parseFloat(M.area),T_=M.thk,D_=M.den,B=M.bag,W_=(M.waste||0)/100,Bn=M.bind/100,BD=M.bden;
@@ -1401,9 +1418,9 @@ function matsCalc(){
 T.mats={
   panel(){
     const inp=(k,l,step)=>'<div><label>'+l+'</label><input type="number" step="'+(step||'any')+'" inputmode="decimal" value="'+(M[k]===''?'':M[k])+'" data-n="m" data-k="'+k+'"></div>';
-    return orderCard()+'<div class="card"><b>عدد الأكياس</b>'+bindSeg()+'<div class="row">'+inp('area','المساحة (sf)')+inp('thk','سماكة الطبقة (إنش)')+'</div><div class="row">'+inp('bag','وزن الكيس (كغ)')+inp('waste','هدر %')+'</div>'+
+    return orderCard()+'<div class="card"><b>عدد الأكياس</b>'+bindSeg()+'<div class="row">'+inp('area','المساحة (sf)')+inp('thk','سماكة الطبقة (إنش)')+'</div><div class="row">'+inp('bag','وزن الكيس (كغ)')+inp('waste','هدر %')+'</div><div class="row">'+inp('temp','حرارة الجو °C (اختياري)')+'<div></div></div>'+
       '<div class="acts"><button class="btn alt sm" data-a="matSel">من القطع المحددة</button><button class="btn alt sm" data-a="matPoly">من مساحة الحدود</button><button class="btn alt sm" data-a="matLog">من مجموع السجل</button></div>'+
-      '<div class="out" id="mOut" style="margin-top:8px"></div><div id="mLog"></div>'+
+      '<div class="mut" id="denNote" style="margin-top:6px">'+denNote()+'</div><div class="out" id="mOut" style="margin-top:8px"></div><div id="mLog"></div>'+
       refsCard()+
       '<details><summary>خلطة الغراء (الطبقة الملونة)</summary><div class="row">'+inp('aliBags','أكياس لكل سطل أليفاتيك')+inp('aliKg','وزن سطل الأليفاتيك (كغ)')+'</div><div class="row">'+inp('topGalBag','غالون Topping لكل كيس')+inp('drumGal','سعة برميل الـ Topping (غالون)')+'</div><p class="mut">حسب خلطتكم: نص سطل أليفاتيك لكيسين (يعني سطل لكل 4 أكياس)، أو 2.5 غالون Topping لكيسين (1.25 غالون للكيس). سعة البرميل 55 غالون افتراضياً، غيّرها إذا برميلكم غير هيك.</p><p class="mut">كثافة المطاط من المراجع: <b>'+M.den.toFixed(3)+' كغ/لتر</b></p></details></div>'+
       '<div class="card"><b>السجل</b>'+(S.log.length?'<table><tbody>'+S.log.map((l,i)=>'<tr><td>'+l.name+'<br><span class="mut">'+l.n+' قطعة</span></td><td>'+sf2(l.sf)+'</td><td><button class="btn alt sm" data-a="logDel" data-i="'+i+'">حذف</button></td></tr>').join('')+'</tbody><tfoot><tr><td><b>المجموع</b></td><td>'+sf2(S.log.reduce((a,l)=>a+l.sf,0))+'</td><td></td></tr></tfoot></table><div class="acts"><button class="btn alt sm" data-a="logCopy">نسخ</button><button class="btn alt sm" data-a="logClr">مسح السجل</button></div>':'<div class="warn">ما في نتائج محفوظة. احفظ مساحات من تبويب «مساحات».</div>')+'</div>';
@@ -1415,7 +1432,7 @@ function noFileCard(){const idx=projSorted();
   '<div class="card"><button class="btn alt" data-a="guide">📘 دليل الاستخدام</button></div>'}
 
 // ================= projects: autosave, undo/redo, saved files =================
-const APP_VER='3.0';
+const APP_VER='3.1';
 const P={id:null,last:null,hist:[],fut:[],t:0,restoring:false};
 const fmtDate=t=>{if(!t)return '';const d=new Date(t);return d.toLocaleDateString()+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})};
 function projIndex(){try{return JSON.parse(localStorage.getItem('tkProj')||'[]')}catch(e){return[]}}
@@ -1476,7 +1493,7 @@ const GUIDE='<div class="card"><b>1. افتح الملف</b><p class="mut">«ف�
   '<div class="card"><b>3. الأطوال</b><p class="mut">تبويب «خطوط» ← «رسم خط». كبّر لحد ما «دقة البكسل» تصير 1 cm أو أقل، واضغط مطوّلاً لتظهر العدسة. إذا في بُعد مكتوب جنب الخط بتشوف الفرق ✓ أو ⚠.</p></div>'+
   '<div class="card"><b>4. المواد والتقرير</b><p class="mut">تبويب «مواد»: الأكياس لكل لون. وزر «📄 تقرير» بيعطيك صورة ونص تبعتهم على واتساب.</p></div>'+
   '<div class="card"><b>شغلك محفوظ</b><p class="mut">كل شي بينحفظ لحاله. ↶ ↷ فوق للتراجع والإعادة، و«مشاريعي» لترجع لأي شغل قديم. الأدوات الإضافية (دوائر، زوايا، ميلان) تحت «المزيد».</p></div>';
-const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• الغراء للطبقة الملونة حسب خلطتكم: سطل أليفاتيك لكل 4 أكياس، أو 1.25 غالون Topping للكيس.<br>• تبويب «مساحات» صار مرتب: المحدد، القطع مجمّعة حسب اللون، والألوان مطوية.<br>• زر 🗂 فوق للمشاريع بأي وقت، و✕ جنب كل مشروع لحذفه، و«آخر فتح» جنب كل اسم.<br>• «مراجع من شغل حقيقي» بتبويب «مواد»: المساحة + السماكة + الأكياس الفعلية، والكثافة بتنحسب منها. وانضاف شغل 698.54 sf · ‏0.25 إنش · 32 كيس كأول مرجع.<br>• زر «📏 أضلاع» بتبويب «مساحات»: بتضغط على أي قطعة غير منتظمة، فبينكتب على الرسم طول كل ضلع مستقيم، وكل جزء منحني بطوله ونصف قطره.<br>• التقرير فيه «دراسة الملف»: الملاحظات المكتوبة بالـ PDF (إذا كانت نص)، وملاحظات المقيّس، والأبعاد، والمقاييس، ونقاط بدها انتباه.<br>• النباريش صارت أوضح: «3 كاملين + 43 سم بس من النربيش الرابع».<br>• زر «🟢 نباريش» بتبويب «مساحات»: بتضغط على الدائرة، وبيطلع عليها بالرسم كم نربيش بدك.<br>• النباريش: لما تحدد قطعة (دائرة أو أي شكل) بيطلع محيطها بالمتر وكم نربيش بدك لترسمها على الأرض (3 م افتراضياً وبتغيّره)، ونصف القطر للدوائر.<br>• سماكة مختلفة لكل لون بطلبية المواد (بالإنش أو بالمليمتر)، مثلاً rubber mulch ‏50 مم، وبتنحفظ لهاللون.<br>• طلبية الألوان صارت تلقائية لكل المخطط: كل لون بمساحته الصافية (بعد طرح الدواير والقطع اللي فوقه)، ومع تأكيد إن المجموع بيطابق المساحة الكلية.<br>• ألوان القياسات بتنقرا من الملف نفسه، والاسم اللي بتكتبه للون بينحفظ للمشاريع الجاية.<br>• ألوان القطع صارت تنقرا من الرسمة نفسها، وأسماؤها من مفتاح الألوان المطبوع بالملف. وإذا الاسم مش صح بتعدّله من «ألوان القطع».<br>• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
+const NEWS='<div class="card"><b>الإصدار '+APP_VER+'</b><p class="mut">• حرارة الجو (اختياري) بحساب الأكياس، وحرارة لكل مرجع. البرنامج بيتعلّم من مراجعك كيف بيتغير الاستهلاك مع الحرارة. وإذا ما كتبت حرارة، الحساب طبيعي.<br>• الغراء للطبقة الملونة حسب خلطتكم: سطل أليفاتيك لكل 4 أكياس، أو 1.25 غالون Topping للكيس.<br>• تبويب «مساحات» صار مرتب: المحدد، القطع مجمّعة حسب اللون، والألوان مطوية.<br>• زر 🗂 فوق للمشاريع بأي وقت، و✕ جنب كل مشروع لحذفه، و«آخر فتح» جنب كل اسم.<br>• «مراجع من شغل حقيقي» بتبويب «مواد»: المساحة + السماكة + الأكياس الفعلية، والكثافة بتنحسب منها. وانضاف شغل 698.54 sf · ‏0.25 إنش · 32 كيس كأول مرجع.<br>• زر «📏 أضلاع» بتبويب «مساحات»: بتضغط على أي قطعة غير منتظمة، فبينكتب على الرسم طول كل ضلع مستقيم، وكل جزء منحني بطوله ونصف قطره.<br>• التقرير فيه «دراسة الملف»: الملاحظات المكتوبة بالـ PDF (إذا كانت نص)، وملاحظات المقيّس، والأبعاد، والمقاييس، ونقاط بدها انتباه.<br>• النباريش صارت أوضح: «3 كاملين + 43 سم بس من النربيش الرابع».<br>• زر «🟢 نباريش» بتبويب «مساحات»: بتضغط على الدائرة، وبيطلع عليها بالرسم كم نربيش بدك.<br>• النباريش: لما تحدد قطعة (دائرة أو أي شكل) بيطلع محيطها بالمتر وكم نربيش بدك لترسمها على الأرض (3 م افتراضياً وبتغيّره)، ونصف القطر للدوائر.<br>• سماكة مختلفة لكل لون بطلبية المواد (بالإنش أو بالمليمتر)، مثلاً rubber mulch ‏50 مم، وبتنحفظ لهاللون.<br>• طلبية الألوان صارت تلقائية لكل المخطط: كل لون بمساحته الصافية (بعد طرح الدواير والقطع اللي فوقه)، ومع تأكيد إن المجموع بيطابق المساحة الكلية.<br>• ألوان القياسات بتنقرا من الملف نفسه، والاسم اللي بتكتبه للون بينحفظ للمشاريع الجاية.<br>• ألوان القطع صارت تنقرا من الرسمة نفسها، وأسماؤها من مفتاح الألوان المطبوع بالملف. وإذا الاسم مش صح بتعدّله من «ألوان القطع».<br>• الشغل بينحفظ لحاله، و«مشاريعي» بتفتح أي شغل قديم بضغطة.<br>• تراجع وإعادة ↶ ↷.<br>• تقرير (صورة ونص) للمشاركة.<br>• طلبية الأكياس حسب اللون.<br>• تسمية الخطوط والدوائر والزوايا.<br>• ✓ أو ⚠ لما القياس يطابق أو يخالف البُعد المكتوب.<br>• وضع الموقع: أرقام أكبر والشاشة ما بتنطفي.<br>• شريط أبسط: الأدوات الإضافية تحت «المزيد».</p></div>';
 // ---------- field mode / tab bar ----------
 let wakeLk=null;
 async function applyField(){document.body.classList.toggle('field',!!S.field);try{localStorage.setItem('tkField',S.field?'1':'')}catch(e){}
@@ -1488,7 +1505,7 @@ function reportItems(){
   const out=[],H=t=>out.push({t,b:1}),Rw=t=>out.push({t:stripMk(t)});
   const sel=S.pieces.filter(p=>p.sign);
   if(sel.length){H('المساحات (من قطع الـ PDF)');let tot=0;sel.forEach(p=>{tot+=p.sign*p.sf;const pd=pieceDims(p),per=pd.P*0.3048,L=M.hose||3;const hc=hoseCalc(per);Rw((p.sign>0?'+ ':'− ')+(p.name||'')+' '+p.sf.toFixed(2)+' sf · محيط '+per.toFixed(2)+' م = '+hc.n+' نربيش ('+L+' م'+(hc.part?'، الأخير '+lenTxt(hc.rem)+' بس':'')+')'+(pd.circ>0.93?' · نصف القطر '+(pd.eq/2*0.3048).toFixed(2)+' م':''))});Rw('المجموع: '+tot.toFixed(2)+' sf')}
-  const g=colorOrder();if(g.length){H('طلبية المواد (هدر '+M.waste+'%، كيس '+M.bag+' كغ)');let tb=0,bd=0;g.forEach(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;if(rb)bd+=matBind(v.sf,th);Rw(k+': '+v.sf.toFixed(1)+' sf'+(rb?' · '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)'))});Rw('المجموع: '+tb+' كيس · الغراء: '+bindTxt(tb))}
+  const g=colorOrder();if(g.length){H('طلبية المواد (هدر '+M.waste+'%، كيس '+M.bag+' كغ'+(hasT(M.temp)?'، حرارة '+M.temp+'°C':'')+')');let tb=0,bd=0;g.forEach(([k,v])=>{const rb=isRubber(v.key,k),th=colThk(v.key),bg=rb?matBags(v.sf,th):0;tb+=bg;if(rb)bd+=matBind(v.sf,th);Rw(k+': '+v.sf.toFixed(1)+' sf'+(rb?' · '+thkTxt(th)+' → '+bg+' كيس':' (مش مطاط)'))});Rw('المجموع: '+tb+' كيس · الغراء: '+bindTxt(tb))}
   if(S.log.length){H('السجل');S.log.forEach(l=>Rw(l.name+': '+l.sf.toFixed(2)+' sf'))}
   const ls=Ln.lines.filter(l=>l.pts.length>1);if(ls.length){H('الأطوال');ls.forEach((l,i)=>{const m=metrics(l),k=scaleP(l.pts);Rw((l.name||'L'+(i+1))+': '+(k?fFt(m.total/k):Math.round(m.total)+' px'))})}
   if(Ln.probes.length){H('الإحداثيات (من نقطة الأصل)');Ln.probes.forEach(p=>{const c=coordOf(p.x,p.y);Rw(p.name+': X '+cX(c)+' · Y '+cY(c))})}
@@ -1603,7 +1620,7 @@ const ACT={
     M.den=n*M.bag/(A_*M.thk/12*28.3168);try{localStorage.setItem('tkDen',M.den.toFixed(5))}catch(e){}$('#cMsg').textContent='الكثافة الفعلية: '+M.den.toFixed(3)+' كغ/لتر. انحفظت واتطبقت.';matsCalc()},
   refAdd(){const sf=parseFloat($('#rArea').value),t=parseFloat($('#rThk').value),n=parseFloat($('#rBags').value),bg=parseFloat($('#rBag').value)||M.bag;
     if(!(sf>0&&t>0&&n>0&&bg>0)){alert('اكتب المساحة والسماكة وعدد الأكياس.');return}const thk=M.tu==='mm'?t/25.4:t;
-    M.refs.push({name:($('#rName').value||'').trim()||('شغل '+new Date().toLocaleDateString()),sf,thk,bags:n,bag:bg,t:Date.now()});saveRefs();applyRefs();renderPanel();matsCalc();toast('انضاف المرجع، والكثافة صارت '+M.den.toFixed(3)+' كغ/لتر')},
+    const tp=parseFloat(String($('#rTemp')?$('#rTemp').value:'').replace(',','.'));M.refs.push({name:($('#rName').value||'').trim()||('شغل '+new Date().toLocaleDateString()),sf,thk,bags:n,bag:bg,temp:isFinite(tp)?tp:null,t:Date.now()});saveRefs();applyRefs();renderPanel();matsCalc();toast('انضاف المرجع، والكثافة صارت '+M.den.toFixed(3)+' كغ/لتر')},
   refDel(d){const r=M.refs[+d.i];if(!r||!confirm('تحذف المرجع «'+r.name+'»؟'))return;M.refs.splice(+d.i,1);saveRefs();applyRefs();renderPanel();matsCalc()},
   areaLogAsk(){const t=totals();if(!t.n){alert('حدد قطع أول.');return}const def=[...new Set(S.pieces.filter(p=>p.sign>0).map(p=>p.name))].join(' + ');const nm=prompt('اسم المجموع للسجل:',def);if(nm===null)return;addLog(nm.trim()||def||('مجموع '+(S.log.length+1)),t.t,t.n);renderPanel();toast('انحفظ بالسجل ✓')},
   clrSelP(){S.pieces.forEach(p=>p.sign=0);renderAll()},
@@ -1616,6 +1633,7 @@ function copyText(t){if(!t){alert('ما في شي للنسخ.');return}t=cmText(
 const CHG={
   hose(v){const x=parseFloat(String(v).replace(',','.'));M.hose=x>0?x:3;try{localStorage.setItem('tkHose',String(M.hose))}catch(e){}renderPanel()},
   cthk(v,d){const x=parseFloat(String(v).replace(',','.'));S.thkC=S.thkC||{};const g=gColThk();if(x>0){const inch=M.tu==='mm'?x/25.4:x;S.thkC[d.k]=inch;g[d.k]=inch}else{delete S.thkC[d.k];delete g[d.k]}try{localStorage.setItem('tkColThk',JSON.stringify(g))}catch(e){}renderPanel();matsCalc()},
+  rtemp(v,d){const r=M.refs[+d.i];if(!r)return;const x=parseFloat(String(v).replace(',','.'));r.temp=String(v).trim()!==''&&isFinite(x)?x:null;saveRefs();applyRefs();renderPanel();matsCalc()},
   cbag(v,d,t){S.noBag=S.noBag||{};S.noBag[d.k]=!t.checked;try{const g=gNoBag();g[d.k]=!t.checked;localStorage.setItem('tkColNoBag',JSON.stringify(g))}catch(e){}renderPanel();draw()},
   cname(v,d){S.cnames=S.cnames||{};const t=String(v).trim();if(t)S.cnames[d.k]=t;else delete S.cnames[d.k];try{const g=gColNames();if(t)g[d.k]=t;else delete g[d.k];localStorage.setItem('tkColNames',JSON.stringify(g))}catch(e){}applyColorNames();renderPanel();draw()},
   nm(v,d){const lists={line:Ln.lines,sl:SL.items,pc:C.pc,ang:N.items},it=(lists[d.k]||[]).find(x=>x.id===+d.id);if(it){it.name=String(v).trim();renderPanel();draw()}},
@@ -1624,7 +1642,7 @@ const CHG={
   spacing(v){Ln.spacing=v;renderPanel()},
   manR(v,d){const m=C.man.find(c=>c.id===+d.id),x=parseFloat(v);if(m&&x>0){m.rFt=x;C.lastR=x}renderPanel();draw()}
 };
-const INP={m(v,d){M[d.k]=d.k==='area'?v:(parseFloat(v)||0);if(d.k==='waste'&&M.refs.length)applyRefs();if(['aliBags','aliKg','topGalBag','drumGal'].includes(d.k))saveBind();matsCalc()}};
+const INP={m(v,d){if(d.k==='temp'){const x=parseFloat(String(v).replace(',','.'));M.temp=String(v).trim()===''||!isFinite(x)?'':x;applyRefs();matsCalc();const dn=document.querySelector('#denNote');if(dn)dn.textContent=denNote();return}M[d.k]=d.k==='area'?v:(parseFloat(v)||0);if(d.k==='waste'&&M.refs.length)applyRefs();if(['aliBags','aliKg','topGalBag','drumGal'].includes(d.k))saveBind();matsCalc()}};
 document.addEventListener('click',e=>{const t=e.target.closest&&e.target.closest('[data-a]');if(!t)return;const f=ACT[t.dataset.a];if(f)f(t.dataset,t,e)});
 document.addEventListener('change',e=>{const t=e.target.closest&&e.target.closest('[data-c]');if(!t)return;const f=CHG[t.dataset.c];if(f)f(t.value,t.dataset,t)});
 document.addEventListener('input',e=>{const t=e.target.closest&&e.target.closest('[data-n]');if(!t)return;const f=INP[t.dataset.n];if(f)f(t.value,t.dataset,t)});
